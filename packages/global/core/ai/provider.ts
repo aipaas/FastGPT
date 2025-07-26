@@ -1,6 +1,7 @@
 import { i18nT } from '../../../web/i18n/utils';
 
 export type ModelProviderIdType =
+  | 'Aicp'
   | 'OpenAI'
   | 'Claude'
   | 'Gemini'
@@ -38,6 +39,11 @@ export type ModelProviderType = {
 };
 
 export const ModelProviderList: ModelProviderType[] = [
+  {
+    id: 'Aicp',
+    name: i18nT('common:model_aicp'),
+    avatar: 'model/aicp'
+  },
   {
     id: 'OpenAI',
     name: 'OpenAI',
