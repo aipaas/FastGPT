@@ -30,6 +30,8 @@ import { getDocPath } from '@/web/common/system/doc';
 import { getWebReqUrl } from '@fastgpt/web/common/system/utils';
 import LoginForm from '@/pageComponents/login/LoginForm/LoginForm';
 import { getBdVId } from '@/web/support/marketing/utils';
+import MyImage from '@fastgpt/web/components/common/Image/MyImage';
+import { LOGO_ICON } from '@fastgpt/global/common/system/constants';
 
 const RegisterForm = dynamic(() => import('@/pageComponents/login/RegisterForm'));
 const ForgetPasswordForm = dynamic(() => import('@/pageComponents/login/ForgetPasswordForm'));
@@ -145,54 +147,89 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
         ></Script>
       )}
 
-      <Flex
-        alignItems={'center'}
-        justifyContent={'center'}
-        bg={`url(${getWebReqUrl('/icon/login-bg.svg')}) no-repeat`}
-        backgroundSize={'cover'}
-        userSelect={'none'}
-        h={'100%'}
-      >
-        {isPc && (
-          <Box position={'absolute'} top={'24px'} right={'50px'}>
-            <I18nLngSelector />
-          </Box>
-        )}
+      <Flex h={'100%'} userSelect={'none'}>
         <Flex
-          flexDirection={'column'}
-          w={['100%', '556px']}
-          h={['100%', '677px']}
-          bg={'white'}
-          px={['5vw', '88px']}
-          py={['5vh', '64px']}
-          borderRadius={[0, '16px']}
-          boxShadow={[
-            '',
-            '0px 32px 64px -12px rgba(19, 51, 107, 0.20), 0px 0px 1px 0px rgba(19, 51, 107, 0.20)'
-          ]}
+          position={'absolute'}
+          top={'24px'}
+          right={'44px'}
+          width={isPc ? 'calc(40% - 88px)' : 'calc(100% - 88px)'}
+          zIndex={10}
+          alignItems={'center'}
+          justifyContent={'space-between'}
         >
-          <Box w={['100%', '380px']} flex={'1 0 0'}>
-            {pageType ? (
-              DynamicComponent
-            ) : (
-              <Center w={'full'} h={'full'} position={'relative'}>
-                <Loading fixed={false} />
-              </Center>
-            )}
-          </Box>
-          {feConfigs?.concatMd && (
-            <Box
-              mt={8}
-              color={'primary.700'}
-              fontSize={'mini'}
-              fontWeight={'medium'}
-              cursor={'pointer'}
-              textAlign={'center'}
-              onClick={onOpen}
-            >
-              {t('common:support.user.login.can_not_login')}
+          <Flex alignItems={'center'}>
+            <Flex w={'40px'} h={'40px'} alignItems={'center'} justifyContent={'center'}>
+              <MyImage src={LOGO_ICON} w={'24px'} alt={'icon'} />
+            </Flex>
+            <Box ml={2} fontSize={'lg'} fontWeight={'bold'} color={'myGray.900'}>
+              {feConfigs?.systemTitle}
             </Box>
-          )}
+          </Flex>
+          <I18nLngSelector />
+        </Flex>
+
+        {/* 左侧内容区域 - 仅在PC端显示 */}
+        {isPc && (
+          <Flex
+            w={'60%'}
+            flexDirection={'column'}
+            alignItems={'flex-start'}
+            bg={`url(${getWebReqUrl('/icon/sangfor-login-bg.svg')}) no-repeat`}
+            backgroundSize={'cover'}
+            position={'relative'}
+            padding={'6% 5% 0'}
+          >
+            {/* 左侧文案内容 */}
+            <Box maxW={'680px'}>
+              <Box
+                fontSize={'40px'}
+                fontWeight={'bold'}
+                color={'#666'}
+                mb={'20px'}
+                lineHeight={'48px'}
+              >
+                FastGPT 深信服商业版
+              </Box>
+              <Box fontSize={'14px'} color={'#666'} lineHeight={'28px'} letterSpacing={'normal'}>
+                面向大模型开发者，提供一站式的大模型开发和推理服务运行平台。支持主流开源大模型，围绕大模型开发的全生命周期包括数据管理、模型训练、模型推理、模型安全、模型部署等不同的阶段，降低用户的大模型开发门槛，提高大模型开发效率，为用户提供更低成本、更高推理性能、更可靠的推理服务以及模型安全的价值。
+              </Box>
+            </Box>
+          </Flex>
+        )}
+
+        {/* 右侧登录表单区域 */}
+        <Flex
+          w={isPc ? '40%' : '100%'}
+          flexDirection={'column'}
+          alignItems={'center'}
+          justifyContent={'center'}
+          bg={'white'}
+          minH={'100vh'}
+        >
+          <Flex flexDirection={'column'} w={'60%'} minWidth={'320px'} bg={'white'}>
+            <Box w={'100%'}>
+              {pageType ? (
+                DynamicComponent
+              ) : (
+                <Center w={'full'} h={'full'} position={'relative'}>
+                  <Loading fixed={false} />
+                </Center>
+              )}
+            </Box>
+            {feConfigs?.concatMd && (
+              <Box
+                mt={8}
+                color={'primary.700'}
+                fontSize={'mini'}
+                fontWeight={'medium'}
+                cursor={'pointer'}
+                textAlign={'center'}
+                onClick={onOpen}
+              >
+                {t('common:support.user.login.can_not_login')}
+              </Box>
+            )}
+          </Flex>
         </Flex>
 
         {isOpen && <CommunityModal onClose={onClose} />}
