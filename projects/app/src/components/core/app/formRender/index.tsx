@@ -100,11 +100,14 @@ const InputRender = (props: InputRenderProps) => {
     }
 
     if (inputType === InputTypeEnum.select) {
-      return <MySelect {...commonProps} list={props.list || []} h={10} />;
+      const list =
+        props.list || props.enums?.map((item) => ({ label: item.value, value: item.value })) || [];
+      return <MySelect {...commonProps} list={list} h={10} />;
     }
 
     if (inputType === InputTypeEnum.multipleSelect) {
-      const { list = [] } = props;
+      const list =
+        props.list || props.enums?.map((item) => ({ label: item.value, value: item.value })) || [];
       return (
         <MultipleSelect<string>
           {...commonProps}
@@ -125,7 +128,7 @@ const InputRender = (props: InputRenderProps) => {
     }
 
     if (inputType === InputTypeEnum.JSONEditor) {
-      return <JSONEditor {...commonProps} />;
+      return <JSONEditor {...commonProps} resize />;
     }
 
     if (inputType === InputTypeEnum.selectLLMModel) {
