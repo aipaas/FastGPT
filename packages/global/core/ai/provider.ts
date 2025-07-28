@@ -41,7 +41,7 @@ export type ModelProviderType = {
 export const ModelProviderList: ModelProviderType[] = [
   {
     id: 'Aicp',
-    name: i18nT('common:model_aicp'),
+    name: 'Sangfor AICP',
     avatar: 'model/aicp'
   },
   {
