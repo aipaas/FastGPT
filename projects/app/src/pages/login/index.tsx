@@ -188,10 +188,10 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
                 mb={'20px'}
                 lineHeight={'48px'}
               >
-                FastGPT 深信服商业版
+                {t('common:support.user.login.fastgpt_sxf_com')}
               </Box>
               <Box fontSize={'14px'} color={'#666'} lineHeight={'28px'} letterSpacing={'normal'}>
-                面向大模型开发者，提供一站式的大模型开发和推理服务运行平台。支持主流开源大模型，围绕大模型开发的全生命周期包括数据管理、模型训练、模型推理、模型安全、模型部署等不同的阶段，降低用户的大模型开发门槛，提高大模型开发效率，为用户提供更低成本、更高推理性能、更可靠的推理服务以及模型安全的价值。
+                {t('common:support.user.login.sxf_com_platform_desc')}
               </Box>
             </Box>
           </Flex>
