@@ -1093,7 +1093,7 @@
   "support.user.login.wx_qr_login": "微信扫码登录",
   "support.user.login.sxf_com": "深信服商业版",
   "support.user.login.fastgpt_sxf_com": "FastGPT 深信服商业版",
-  "support.user.login.sxf_com_platform_desc": "面向大模型开发者，提供一站式的大模型开发和推理服务运行平台。支持主流开源大模型，围绕大模型开发的全生命周期包括数据管理、模型训练、模型推理、模型安全、模型部署等不同的阶段，降低用户的大模型开发门槛，提高大模型开发效率，为用户提供更低成本、更高推理性能、更可靠的推理服务以及模型安全的价值。",
+  "support.user.login.sxf_com_platform_desc": "让每一位数字化用户更简单地开发和持续优化属于自己的 AI 应用，持续积累数据和 AI 开发能力。面向 AI 应用的开发流程，提供多种知识增强工具提升构建应用的数据质量，通过应用效果评测和辅助定位，帮助用户自闭环地优化应用。",
   "support.user.logout.confirm": "确认退出登录?",
   "support.user.team.Dataset usage": "知识库容量",
   "support.user.team.Team Tags Async Success": "同步完成",
