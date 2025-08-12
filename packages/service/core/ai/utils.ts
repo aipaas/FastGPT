@@ -1,4 +1,9 @@
 import { type LLMModelItemType } from '@fastgpt/global/core/ai/model.d';
+import { getLLMModel, findAIModel } from './model';
+import { ModelTypeEnum } from '@fastgpt/global/core/ai/model';
+import { getAIApi, getAxiosConfig } from './config';
+import type { OpenaiAccountType } from '@fastgpt/global/support/user/team/type';
+
 import type {
   ChatCompletionCreateParamsNonStreaming,
   ChatCompletionCreateParamsStreaming,
@@ -8,7 +13,6 @@ import type {
   CompletionUsage,
   ChatCompletionMessageToolCall
 } from '@fastgpt/global/core/ai/type';
-import { getLLMModel } from './model';
 import { getLLMDefaultUsage } from '@fastgpt/global/core/ai/constants';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
 import json5 from 'json5';
@@ -495,3 +499,63 @@ export const parseLLMStreamResponse = () => {
     updateFinishReason
   };
 };
+
+export interface ModelRequestConfig {
+  model_name: string;
+  request_url: string;
+  api_key: string;
+}
+
+export function configureModelRequest(
+  modelName: string,
+  userKey?: OpenaiAccountType
+): ModelRequestConfig {
+  const modelData = getLLMModel(modelName) || findAIModel(modelName);
+
+  if (!modelData) {
+    throw new Error(`Model ${modelName} not found in configuration`);
+  }
+
+  if (modelData.requestUrl) {
+    if (!modelData.requestAuth) {
+      console.warn(`Custom model ${modelName} missing requestAuth, requests may fail`);
+    }
+    return {
+      model_name: modelData.model,
+      request_url: modelData.requestUrl,
+      api_key: modelData.requestAuth || ''
+    };
+  }
+
+  const axiosConfig = getAxiosConfig({ userKey });
+  const isAiproxyUrl =
+    axiosConfig.baseUrl.includes('aiproxy') || Boolean(process.env.AIPROXY_API_ENDPOINT);
+
+  let apiKey = '';
+  let requestUrl = axiosConfig.baseUrl;
+
+  if (isAiproxyUrl) {
+    apiKey = process.env.AIPROXY_API_TOKEN || userKey?.key || '';
+  } else {
+    apiKey = userKey?.key || process.env.CHAT_API_KEY || '';
+    requestUrl =
+      userKey?.baseUrl ||
+      global?.systemEnv?.oneapiUrl ||
+      process.env.OPENAI_BASE_URL ||
+      'https://api.openai.com/v1';
+  }
+
+  if (!apiKey) {
+    throw new Error(
+      `No API key found for model ${modelName}. ` +
+        `Please provide userKey parameter or configure environment variables ` +
+        `(AIPROXY_API_TOKEN or CHAT_API_KEY)`
+    );
+  }
+
+  return {
+    model_name: modelData.model,
+    request_url: requestUrl,
+    api_key: apiKey
+  };
+}
