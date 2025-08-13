@@ -13,6 +13,8 @@
   "duration_seconds": "Duration (seconds)",
   "embedding_index": "Embedding",
   "evaluation": "Application Review",
+  "embedding_call": "Embedding call",
+  "llm_call": "LLM call",
   "every_day": "Day",
   "every_month": "Moon",
   "every_week": "weekly",

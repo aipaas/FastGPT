@@ -235,18 +235,26 @@ export const pushLLMTrainingUsage = async ({
 
   return { totalPoints };
 };
+export type EvaluationMode = 'run' | 'evaluate_llm' | 'evaluate_embedding';
+export const evaluationUsageIndexMap: Record<EvaluationMode, number> = {
+  run: 0,
+  evaluate_embedding: 1,
+  evaluate_llm: 2
+};
 
 export const createEvaluationUsage = async ({
   teamId,
   tmbId,
   appName,
-  model,
+  vectorModel,
+  llmModel,
   session
 }: {
   teamId: string;
   tmbId: string;
   appName: string;
-  model: string;
+  vectorModel?: string;
+  llmModel?: string;
   session?: ClientSession;
 }) => {
   const [{ _id: usageId }] = await MongoUsage.create(
@@ -263,13 +271,28 @@ export const createEvaluationUsage = async ({
             amount: 0,
             count: 0
           },
-          {
-            moduleName: i18nT('account_usage:answer_accuracy'),
-            amount: 0,
-            inputTokens: 0,
-            outputTokens: 0,
-            model
-          }
+          ...(vectorModel
+            ? [
+                {
+                  moduleName: i18nT('account_usage:embedding_call'),
+                  model: vectorModel,
+                  amount: 0,
+                  inputTokens: 0,
+                  outputTokens: 0
+                }
+              ]
+            : []),
+          ...(llmModel
+            ? [
+                {
+                  moduleName: i18nT('account_usage:llm_call'),
+                  model: llmModel,
+                  amount: 0,
+                  inputTokens: 0,
+                  outputTokens: 0
+                }
+              ]
+            : [])
         ]
       }
     ],
@@ -277,4 +300,43 @@ export const createEvaluationUsage = async ({
   );
 
   return { usageId };
+};
+
+export const pushEvaluateUsage = async ({
+  teamId,
+  tmbId,
+  model,
+  inputTokens,
+  outputTokens,
+  usageId,
+  mode
+}: {
+  teamId: string;
+  tmbId: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  usageId: string;
+  mode: EvaluationMode;
+}) => {
+  const index = evaluationUsageIndexMap[mode];
+
+  const { totalPoints } = formatModelChars2Points({
+    model,
+    modelType: ModelTypeEnum.llm,
+    inputTokens,
+    outputTokens
+  });
+
+  concatUsage({
+    billId: usageId,
+    teamId,
+    tmbId,
+    totalPoints,
+    inputTokens,
+    outputTokens,
+    listIndex: index
+  });
+
+  return { totalPoints };
 };
