@@ -155,16 +155,17 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
           width={isPc ? 'calc(40% - 88px)' : 'calc(100% - 88px)'}
           zIndex={10}
           alignItems={'center'}
+          flexDirection={'row-reverse'}
           justifyContent={'space-between'}
         >
-          <Flex alignItems={'center'}>
+          {/* <Flex alignItems={'center'}>
             <Flex w={'40px'} h={'40px'} alignItems={'center'} justifyContent={'center'}>
               <MyImage src={LOGO_ICON} w={'24px'} alt={'icon'} />
             </Flex>
             <Box ml={2} fontSize={'lg'} fontWeight={'bold'} color={'myGray.900'}>
               {feConfigs?.systemTitle}
             </Box>
-          </Flex>
+          </Flex> */}
           <I18nLngSelector />
         </Flex>
 
@@ -180,7 +181,7 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
             padding={'6% 5% 0'}
           >
             {/* 左侧文案内容 */}
-            <Box maxW={'680px'}>
+            {/* <Box maxW={'680px'}>
               <Box
                 fontSize={'40px'}
                 fontWeight={'bold'}
@@ -193,7 +194,7 @@ const Login = ({ ChineseRedirectUrl }: { ChineseRedirectUrl: string }) => {
               <Box fontSize={'14px'} color={'#666'} lineHeight={'28px'} letterSpacing={'normal'}>
                 {t('common:support.user.login.sxf_com_platform_desc')}
               </Box>
-            </Box>
+            </Box> */}
           </Flex>
         )}
 

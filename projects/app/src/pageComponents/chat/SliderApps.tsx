@@ -67,8 +67,8 @@ const SliderApps = ({ apps, activeAppId }: { apps: AppListItemType[]; activeAppI
             <Image
               w="135px"
               h="33px"
-              src="/imgs/fastgpt_slogan.png"
-              alt="FastGPT slogan"
+              src="/imgs/huaneng_slogan.png"
+              alt="HUANENG slogan"
               loading="eager"
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageLoaded(true)}
