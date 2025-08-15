@@ -110,7 +110,7 @@ const LoginForm = ({ setPageType, loginSuccess }: Props) => {
             })}
           ></Input>
         </FormControl>
-        {feConfigs?.docUrl && (
+        {/* {feConfigs?.docUrl && (
           <Flex
             alignItems={'center'}
             mt={7}
@@ -136,7 +136,7 @@ const LoginForm = ({ setPageType, loginSuccess }: Props) => {
               {t('login:privacy')}
             </Link>
           </Flex>
-        )}
+        )} */}
 
         <Button
           type="submit"
