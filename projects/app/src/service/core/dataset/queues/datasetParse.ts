@@ -95,7 +95,7 @@ export const datasetParseQueue = async (): Promise<any> => {
           {
             mode: TrainingModeEnum.parse,
             retryCount: { $gt: 0 },
-            lockTime: { $lte: addMinutes(new Date(), -10) }
+            lockTime: { $lte: addMinutes(new Date(), -120) }
           },
           {
             lockTime: new Date(),
