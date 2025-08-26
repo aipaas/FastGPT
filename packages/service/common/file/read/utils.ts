@@ -71,6 +71,7 @@ export const readRawContentByFileBuffer = async ({
   const parsePdfFromCustomService = async (): Promise<ReadFileResponse> => {
     const url = global.systemEnv.customPdfParse?.url;
     const token = global.systemEnv.customPdfParse?.key;
+    const timeout =  global.systemEnv.customPdfParse?.timeout;
     if (!url) return systemParse();
 
     const start = Date.now();
@@ -85,7 +86,7 @@ export const readRawContentByFileBuffer = async ({
       markdown: string;
       error?: Object | string;
     }>(url, data, {
-      timeout: 36000000,
+      timeout: timeout,
       headers: {
         ...data.getHeaders(),
         Authorization: token ? `Bearer ${token}` : undefined
