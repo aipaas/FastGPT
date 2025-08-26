@@ -80,11 +80,24 @@ const requestLLMPargraph = async ({
   return data;
 };
 
+const reduceQueue = () => {
+  global.parseQueueLen = global.parseQueueLen > 0 ? global.parseQueueLen - 1 : 0;
+
+  return global.parseQueueLen === 0;
+};
+
 export const datasetParseQueue = async (): Promise<any> => {
+  const max = global.systemEnv?.parseMaxProcess || 6;
+  addLog.debug(`[Parse Queue] Queue size: ${global.parseQueueLen}`);
+
+  if (global.parseQueueLen >= max) return;
+  global.parseQueueLen++;
+
+
   const startTime = Date.now();
 
   while (true) {
-    // 1. Get task and lock 20 minutes ago
+    // 1. Get task and lock 120 minutes ago
     const {
       data,
       done = false,
@@ -356,5 +369,8 @@ export const datasetParseQueue = async (): Promise<any> => {
     }
   }
 
-  addLog.debug(`[Parse Queue] break loop`);
+  if (reduceQueue()) {
+    addLog.info(`[Parse Queue] Done`);
+  }
+  addLog.debug(`[Parse Queue] break loop, current queue size: ${global.parseQueueLen}`);
 };
