@@ -146,6 +146,7 @@ export type SystemEnvType = {
 export type customPdfParseType = {
   url?: string;
   key?: string;
+  timeout?: number;
   doc2xKey?: string;
   price?: number;
 };
