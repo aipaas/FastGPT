@@ -93,9 +93,8 @@ export const datasetParseQueue = async (): Promise<any> => {
   if (global.parseQueueLen >= max) return;
   global.parseQueueLen++;
 
-
   const startTime = Date.now();
-  const timeout =  global.systemEnv.customPdfParse?.timeout;
+  const timeout = global.systemEnv.customPdfParse?.timeout || 120;
 
   while (true) {
     // 1. Get task and lock 120 minutes ago
