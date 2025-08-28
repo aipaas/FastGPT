@@ -107,7 +107,8 @@ export const DatasetSelectModal = ({
           datasetId: item._id,
           avatar: item.avatar,
           name: item.name,
-          vectorModel: item.vectorModel
+          vectorModel: item.vectorModel,
+          datasetType: item.type,
         }
       ]);
     } else {

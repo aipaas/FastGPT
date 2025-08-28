@@ -91,11 +91,13 @@ export const loadSystemModels = async (init = false) => {
     // Get model from db and plugin
     const [dbModels, systemModels] = await Promise.all([
       MongoSystemModel.find({}).lean(),
-      pluginClient.model.list().then((res) => {
-        if (res.status === 200) return res.body;
-        console.error('Get fastGPT plugin model error');
-        return [];
-      })
+      // Temporarily disable plugin model loading
+      // pluginClient.model.list().then((res) => {
+      //   if (res.status === 200) return res.body;
+      //   console.error('Get fastGPT plugin model error');
+      //   return [];
+      // })
+      []
     ]);
 
     // Load system model from local

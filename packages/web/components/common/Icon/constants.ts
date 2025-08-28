@@ -251,6 +251,8 @@ export const iconPaths = {
     import('./icons/core/dataset/websiteDatasetOutline.svg'),
   'core/dataset/yuqueDatasetColor': () => import('./icons/core/dataset/yuqueDatasetColor.svg'),
   'core/dataset/yuqueDatasetOutline': () => import('./icons/core/dataset/yuqueDatasetOutline.svg'),
+  'core/dataset/databaseOutline': () => import('./icons/core/dataset/databaseOutline.svg'),
+  'core/dataset/databaseColor': () => import('./icons/core/dataset/databaseColor.svg'),
   'core/modules/basicNode': () => import('./icons/core/modules/basicNode.svg'),
   'core/modules/fixview': () => import('./icons/core/modules/fixview.svg'),
   'core/modules/flowLight': () => import('./icons/core/modules/flowLight.svg'),

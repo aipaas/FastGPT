@@ -13,10 +13,23 @@ import { useContextSelector } from 'use-context-selector';
 import { WorkflowContext } from '@/pageComponents/app/detail/WorkflowComponents/context';
 import { getWebLLMModel } from '@/web/common/system/utils';
 import { type AppDatasetSearchParamsType } from '@fastgpt/global/core/app/type';
+import { DatasetTypeEnum } from '@fastgpt/global/core/dataset/constants';
 
 const SelectDatasetParam = ({ inputs = [], nodeId }: RenderInputProps) => {
   const onChangeNode = useContextSelector(WorkflowContext, (v) => v.onChangeNode);
   const nodeList = useContextSelector(WorkflowContext, (v) => v.nodeList);
+
+  const knowledgeTypeConfig = useMemo(() => {
+    const list = (nodeList.find(node => node.nodeId === nodeId)?.inputs || [])
+      .filter(input => input.key === NodeInputKeyEnum.datasetSelectList).map(dataset => dataset.value).flat().filter(v => v);
+      
+    return {
+      hasDatabaseKnowledge: list.some(item => item.datasetType === DatasetTypeEnum.database),
+      hasOtherKnowledge: list.some(item => item.datasetType !== DatasetTypeEnum.database)
+    }
+  },
+  [nodeList, nodeId]
+  );
 
   const { t } = useTranslation();
   const { defaultModels } = useSystemStore();
@@ -89,10 +102,13 @@ const SelectDatasetParam = ({ inputs = [], nodeId }: RenderInputProps) => {
           usingReRank={data.usingReRank}
           datasetSearchUsingExtensionQuery={data.datasetSearchUsingExtensionQuery}
           queryExtensionModel={data.datasetSearchExtensionModel}
+          {
+            ...knowledgeTypeConfig
+          }
         />
       </>
     );
-  }, [data, onOpen, t]);
+  }, [data, onOpen, t, knowledgeTypeConfig]);
 
   return (
     <>
@@ -100,6 +116,7 @@ const SelectDatasetParam = ({ inputs = [], nodeId }: RenderInputProps) => {
       {isOpen && (
         <DatasetParamsModal
           {...data}
+          {...knowledgeTypeConfig}
           maxTokens={tokenLimit}
           onClose={onClose}
           onSuccess={(e) => {

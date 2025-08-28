@@ -10,7 +10,8 @@ import {
   Slider,
   SliderTrack,
   SliderFilledTrack,
-  SliderThumb
+  SliderThumb,
+  Divider
 } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import MyModal from '@fastgpt/web/components/common/MyModal';
@@ -49,12 +50,16 @@ const DatasetParamsModal = ({
   datasetSearchExtensionModel,
   datasetSearchExtensionBg,
   maxTokens,
+  hasDatabaseKnowledge = false,
+  hasOtherKnowledge = true,
   onClose,
   onSuccess
 }: AppDatasetSearchParamsType & {
   maxTokens?: number; // limit max tokens
   onClose: () => void;
   onSuccess: (e: AppDatasetSearchParamsType) => void;
+  hasDatabaseKnowledge?: boolean;
+  hasOtherKnowledge?: boolean;
 }) => {
   const { t } = useTranslation();
   const { teamPlanStatus } = useUserStore();
@@ -134,6 +139,55 @@ const DatasetParamsModal = ({
     return Math.ceil(maxTokens / 80 / 100) * 100;
   }, [maxTokens]);
 
+  const showModelTitle = useMemo(() => hasDatabaseKnowledge && hasOtherKnowledge, [hasDatabaseKnowledge, hasOtherKnowledge])
+
+  const renderHeader = useMemo(() => {
+    return (
+      <>
+        {showModelTitle && (
+          <HStack fontSize={'md'} alignItems={'center'} fontWeight={'medium'} mb={4}>
+            <Box w={'3px'} h={'14px'} borderRadius={'13px'} bg={'primary.600'} />
+            <Box color="myGray.900"
+              fontSize="16px"
+              fontWeight="500">{t('数据库')}</Box>
+          </HStack>
+        )}
+        <Flex mb={2} alignItems={'center'}>
+          <FormLabel>
+            {t('检索模型')}
+            <QuestionTip ml={0.5} label={
+              <>
+                {t('用于生成可在数据库中检索的SQL语句，并进行检索与汇总，生成可用于对话的文本。')}
+                <br />
+                {t('使用非推理模型、参数量大的模型效果更佳。')}
+              </>
+            } />
+          </FormLabel>
+          <Box flex={['1 0 0', '0 0 380px']}>
+            <SelectAiModel
+              flex={1}
+              width={'100%'}
+              ml={2}
+              list={chatModelSelectList}
+            />
+          </Box>
+        </Flex>
+        {
+          showModelTitle && (
+            <>
+              <Divider mt={6} mb={6} />
+              <HStack fontSize={'md'} alignItems={'center'} fontWeight={'medium'} mb={4}>
+                <Box color="myGray.900"
+                  fontSize="16px"
+                  fontWeight="500">{t('其他知识库')}</Box>
+              </HStack>
+            </>
+          )
+        }
+      </>
+    )
+  }, [chatModelSelectList, showModelTitle, t])
+
   return (
     <MyModal
       isOpen={true}
@@ -143,6 +197,7 @@ const DatasetParamsModal = ({
       w={['90vw', '550px']}
     >
       <ModalBody flex={'auto'} overflow={'auto'} px={[4, 10]}>
+        {renderHeader}
         <LightRowTabs<SearchSettingTabEnum>
           width={'100%'}
           mb={3}

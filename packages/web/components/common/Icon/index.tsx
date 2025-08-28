@@ -9,7 +9,6 @@ const iconCache: Record<string, any> = {};
 
 const MyIcon = ({ name, w = 'auto', h = 'auto', ...props }: { name: IconNameType } & IconProps) => {
   const [, setUpdate] = useState(0);
-
   useEffect(() => {
     if (iconCache[name]) {
       return;

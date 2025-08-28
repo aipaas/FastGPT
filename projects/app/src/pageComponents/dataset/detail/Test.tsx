@@ -16,7 +16,8 @@ import { useTranslation } from 'next-i18next';
 import { type SearchTestResponse } from '@/global/core/dataset/api';
 import {
   DatasetSearchModeEnum,
-  DatasetSearchModeMap
+  DatasetSearchModeMap,
+  DatasetTypeEnum
 } from '@fastgpt/global/core/dataset/constants';
 import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
@@ -131,6 +132,8 @@ const Test = ({ datasetId }: { datasetId: string }) => {
     setSelectFile(file);
   };
 
+  const isDatabase = useMemo(() => datasetDetail?.type === DatasetTypeEnum.database, [datasetDetail])
+
   useEffect(() => {
     setDatasetTestItem(undefined);
   }, [datasetId]);
@@ -153,12 +156,12 @@ const Test = ({ datasetId }: { datasetId: string }) => {
           borderRadius={'md'}
           {...(isFocus
             ? {
-                borderColor: 'primary.500',
-                boxShadow: '0px 0px 0px 2.4px rgba(51, 112, 255, 0.15)'
-              }
+              borderColor: 'primary.500',
+              boxShadow: '0px 0px 0px 2.4px rgba(51, 112, 255, 0.15)'
+            }
             : {
-                borderColor: 'primary.300'
-              })}
+              borderColor: 'primary.300'
+            })}
         >
           {/* header */}
           <Flex alignItems={'center'} justifyContent={'space-between'}>
@@ -191,15 +194,59 @@ const Test = ({ datasetId }: { datasetId: string }) => {
               value={inputType}
               onChange={(e) => setInputType(e)}
             />
-
-            <Button
-              variant={'whitePrimary'}
-              leftIcon={<MyIcon name={searchModeData.icon as any} w={'14px'} />}
-              size={'sm'}
-              onClick={onOpenSelectMode}
-            >
-              {t(searchModeData.title as any)}
-            </Button>
+            {
+              isDatabase ? (
+                <Flex alignItems={'center'}>
+                  <MySelect<'text' | 'file'>
+                    size={'sm'}
+                    list={[
+                      {
+                        label: (
+                          <Flex alignItems={'center'}>
+                            <MyIcon mr={2} name={'text'} w={'14px'} color={'primary.600'} />
+                            <Box fontSize={'sm'} fontWeight={'bold'} flex={1}>
+                              {t('common:core.dataset.test.Test Text')}
+                            </Box>
+                          </Flex>
+                        ),
+                        value: 'text'
+                      }
+                      // {
+                      //   label: (
+                      //     <Flex alignItems={'center'}>
+                      //       <MyIcon mr={2} name={'file/csv'} w={'14px'} color={'primary.600'} />
+                      //       <Box fontSize={'sm'} fontWeight={'bold'} flex={1}>
+                      //         {t('common:core.dataset.test.Batch test')}
+                      //       </Box>
+                      //     </Flex>
+                      //   ),
+                      //   value: 'file'
+                      // }
+                    ]}
+                    value={inputType}
+                    onChange={(e) => setInputType(e)}
+                  />
+                  <QuestionTip
+                    label={
+                      <>
+                        {t('用于生成可在数据库中检索的SQL语句，并进行检索与汇总，生成可用于对话的文本。')}
+                        <br />
+                        {t('使用非推理模型、参数量大的模型效果更佳。')}
+                      </>
+                    }
+                  >
+                  </QuestionTip>
+                </Flex>
+              ) : (
+                <Button
+                  variant={'whitePrimary'}
+                  leftIcon={<MyIcon name={searchModeData.icon as any} w={'14px'} />}
+                  size={'sm'}
+                  onClick={onOpenSelectMode}
+                >
+                  {t(searchModeData.title as any)}
+                </Button>)
+            }
           </Flex>
 
           <Box h={'180px'}>

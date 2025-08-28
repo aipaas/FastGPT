@@ -1,5 +1,15 @@
 import React from 'react';
-import { Box, Flex, MenuButton, Button, Link, useDisclosure, HStack } from '@chakra-ui/react';
+import { 
+  Box, 
+  Flex, 
+  MenuButton, 
+  Button, 
+  Link, 
+  useDisclosure, 
+  HStack, 
+  Alert,
+  AlertIcon
+} from '@chakra-ui/react';
 import {
   getDatasetCollectionPathById,
   postDatasetCollection,
@@ -112,6 +122,15 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
   );
 
   const isWebSite = datasetDetail?.type === DatasetTypeEnum.websiteDataset;
+  const isDatabase = datasetDetail?.type === DatasetTypeEnum.database;
+
+  const showHeaderTagPopOver = React.useMemo(
+    () => 
+      ![DatasetTypeEnum.websiteDataset, DatasetTypeEnum.database].includes(datasetDetail.type as DatasetTypeEnum) &&
+      datasetDetail.permission.hasWritePer &&
+      feConfigs?.isPlus,
+    [datasetDetail.type, datasetDetail.permission.hasWritePer, feConfigs?.isPlus]
+  );
 
   return (
     <MyBox display={['block', 'flex']} alignItems={'center'} gap={2}>
@@ -162,7 +181,6 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
             }}
           />
         </Box>
-
         {/* search input */}
         {isPc && (
           <MyInput
@@ -170,7 +188,7 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
             flex={1}
             size={'sm'}
             h={'36px'}
-            placeholder={t('common:Search') || ''}
+            placeholder={isDatabase ? t('dataset:search_name_or_description') : t('common:Search') || ''}
             value={searchText}
             leftIcon={
               <MyIcon
@@ -187,9 +205,7 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
         )}
 
         {/* Tag */}
-        {datasetDetail.type !== DatasetTypeEnum.websiteDataset &&
-          datasetDetail.permission.hasWritePer &&
-          feConfigs?.isPlus && <HeaderTagPopOver />}
+        {showHeaderTagPopOver && <HeaderTagPopOver />}
       </HStack>
 
       {/* diff collection button */}
@@ -452,6 +468,105 @@ const Header = ({ hasTrainingData }: { hasTrainingData: boolean }) => {
               ]}
             />
           )}
+          {
+            isDatabase && (
+              <>
+              {/* TODO-lyx 是否配置字段待定 */}
+              {datasetDetail?.websiteConfig?.url ? (
+                <>
+                  {datasetDetail.status === DatasetStatusEnum.active && (
+                    <HStack gap={2}>
+                      <Button
+                        onClick={onOpenWebsiteModal}
+                        leftIcon={<Icon name="change" w={'1rem'} />}
+                      >
+                        {t('dataset:params_config')}
+                      </Button>
+                      {!hasTrainingData && feConfigs?.isPlus && (
+                        <Button
+                          variant={'whitePrimary'}
+                          onClick={openDatasetSyncConfirm}
+                          leftIcon={<Icon name="common/confirm/restoreTip" w={'1rem'} />}
+                        >
+                          {t('dataset:immediate_sync')}
+                        </Button>
+                      )}
+                    </HStack>
+                  )}
+                  {datasetDetail.status === DatasetStatusEnum.syncing && (
+                    <MyTag
+                      colorSchema="purple"
+                      showDot
+                      px={3}
+                      h={'36px'}
+                      DotStyles={{
+                        w: '8px',
+                        h: '8px',
+                        animation: 'zoomStopIcon 0.5s infinite alternate'
+                      }}
+                    >
+                      {t('common:core.dataset.status.syncing')}
+                    </MyTag>
+                  )}
+                  {datasetDetail.status === DatasetStatusEnum.waiting && (
+                    <MyTag
+                      colorSchema="gray"
+                      showDot
+                      px={3}
+                      h={'36px'}
+                      DotStyles={{
+                        w: '8px',
+                        h: '8px',
+                        animation: 'zoomStopIcon 0.5s infinite alternate'
+                      }}
+                    >
+                      {t('common:core.dataset.status.waiting')}
+                    </MyTag>
+                  )}
+                  {datasetDetail.status === DatasetStatusEnum.error && (
+                    <MyTag colorSchema="red" showDot px={3} h={'36px'}>
+                      <HStack spacing={1}>
+                        <Box>{t('dataset:status_error')}</Box>
+                        <QuestionTip color={'red.500'} label={datasetDetail.errorMsg} />
+                      </HStack>
+                    </MyTag>
+                  )}
+                </>
+              ) : (
+                <>
+                <Button
+                  onClick={() => {
+                    router.replace({
+                      query: {
+                        ...router.query,
+                        currentTab: TabEnum.import,
+                        source: ImportDataSourceEnum.database
+                      }
+                    })
+                  }}
+                  leftIcon={<Icon name="common/setting" w={'18px'} />}
+                >
+                  {t('common:core.dataset.Set Website Config')}
+                </Button>
+                <Button
+                  onClick={() => {
+                    router.replace({
+                      query: {
+                        ...router.query,
+                        currentTab: TabEnum.import,
+                        source: ImportDataSourceEnum.editDatabase
+                      }
+                    })
+                  }}
+                  leftIcon={<Icon name="common/setting" w={'18px'} />}
+                >
+                  {t('配置')}
+                </Button>
+                </>
+              )}
+            </>
+            )
+          }
           {/* apiDataset */}
           {datasetDetail?.type && ApiDatasetTypeMap[datasetDetail.type] && (
             <>
