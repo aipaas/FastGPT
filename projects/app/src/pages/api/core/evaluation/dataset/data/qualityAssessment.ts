@@ -10,6 +10,7 @@ import {
   checkEvalDatasetDataQualityJobActive
 } from '@fastgpt/service/core/evaluation/dataQualityMq';
 import type { qualityAssessmentBody } from '@fastgpt/global/core/evaluation/api';
+import { EvalDatasetDataQualityStatusEnum } from '@fastgpt/global/core/evaluation/constants';
 
 export type QualityAssessmentQuery = {};
 export type QualityAssessmentBody = qualityAssessmentBody;
@@ -62,7 +63,7 @@ async function handler(
 
     await MongoEvalDatasetData.findByIdAndUpdate(dataId, {
       $set: {
-        'metadata.qualityStatus': 'queuing',
+        'metadata.qualityStatus': EvalDatasetDataQualityStatusEnum.queuing,
         'metadata.qualityModel': evalModel,
         'metadata.qualityQueueTime': new Date()
       }

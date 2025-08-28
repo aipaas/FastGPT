@@ -14,7 +14,6 @@ async function handler(
 ): Promise<EvalDatasetCollectionUpdateResponse> {
   const { collectionId, name, description = '' } = req.body;
 
-  // Parameter validation
   if (!collectionId || typeof collectionId !== 'string' || collectionId.trim().length === 0) {
     return Promise.reject('Collection ID is required and must be a non-empty string');
   }
@@ -31,8 +30,8 @@ async function handler(
     return Promise.reject('Description must be a string');
   }
 
-  if (description && description.length > 500) {
-    return Promise.reject('Description must be less than 500 characters');
+  if (description && description.length > 100) {
+    return Promise.reject('Description must be less than 100 characters');
   }
 
   // TODO: Authentication check - verify user is authenticated via cookie or token
@@ -67,7 +66,6 @@ async function handler(
     return Promise.reject('A dataset with this name already exists');
   }
 
-  // Update dataset collection
   try {
     await mongoSessionRun(async (session) => {
       await MongoEvalDatasetCollection.updateOne(

@@ -91,10 +91,6 @@ async function handler(
       evalDatasetCollectionId: collectionId
     });
 
-    await MongoEvalDatasetCollection.findByIdAndUpdate(collectionId, {
-      $inc: { dataCountByGen: finalCount }
-    });
-
     // TODO: Add audit log for smart generation operation
     // TODO: Add tracking metrics for smart generation
 
