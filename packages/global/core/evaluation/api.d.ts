@@ -1,10 +1,16 @@
+
 import type { PaginationProps, PaginationResponse } from '@fastgpt/web/common/fetch/type';
 import type {
   EvalDatasetCollectionSchemaType,
   EvalDatasetDataSchemaType,
-  EvalDatasetCollectionStatus
+  EvalDatasetCollectionStatus,
+  EvalCase,
+  EvalModelConfigType,
+  MetricConfig
 } from './type';
 import type { EvalDatasetDataKeyEnum } from './constants';
+import type { PaginationProps } from '@fastgpt/web/common/fetch/type';
+import type { SourceMemberType } from '@fastgpt/global/support/user/type';
 
 export type listEvaluationsBody = PaginationProps<{
   searchKey?: string;
@@ -151,4 +157,29 @@ export type retryTaskBody = {
 export type deleteTaskBody = {
   collectionId: string;
   jobId: string;
+};
+
+export type CreateMetricBody = {
+  name: string;
+  description?: string;
+  prompt: string;
+};
+
+export type DebugMetricBody = {
+  evalCase: EvalCase;
+  llmConfig: EvalModelConfigType;
+  metricConfig: MetricConfig;
+};
+
+export type UpdateMetricBody = {
+  id: string;
+  name?: string;
+  description?: string;
+  prompt?: string;
+};
+
+export type ListMetricsBody = {
+  pageNum?: number;
+  pageSize?: number;
+  searchKey?: string;
 };
