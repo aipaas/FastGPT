@@ -9,8 +9,16 @@ export enum DatasetTypeEnum {
 
   apiDataset = 'apiDataset',
   feishu = 'feishu',
-  yuque = 'yuque'
+  yuque = 'yuque',
+  database = 'database'
 }
+/* ------------ database_dataset -------------- */
+export enum DatabaseType {
+  mysql = 'mysql',
+  postgresql = 'postgresql',
+  mssql = 'mssql',
+  sqlite = 'sqlite'
+};
 
 // @ts-ignore
 export const ApiDatasetTypeMap: Record<
@@ -113,7 +121,8 @@ export enum DatasetCollectionTypeEnum {
   link = 'link', // one link
   externalFile = 'externalFile',
   apiFile = 'apiFile',
-  images = 'images'
+  images = 'images',
+  table = 'table' // database table
 }
 export const DatasetCollectionTypeMap = {
   [DatasetCollectionTypeEnum.folder]: {
@@ -163,7 +172,7 @@ export enum DatasetCollectionDataProcessModeEnum {
 
   backup = 'backup',
   template = 'template',
-
+  databaseSchema = 'databaseSchema',
   auto = 'auto' // abandon
 }
 export const DatasetCollectionDataProcessModeMap = {
@@ -234,7 +243,8 @@ export enum TrainingModeEnum {
   qa = 'qa',
   auto = 'auto',
   image = 'image',
-  imageParse = 'imageParse'
+  imageParse = 'imageParse',
+  databaseSchema = 'databaseSchema'
 }
 
 /* ------------ search -------------- */
