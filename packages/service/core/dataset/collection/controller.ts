@@ -274,7 +274,8 @@ export async function createOneCollection({ session, ...props }: CreateOneCollec
     externalFileId,
     externalFileUrl,
     apiFileId,
-    apiFileParentId
+    apiFileParentId,
+    tableSchema
   } = props;
 
   const collectionTags = await createOrGetCollectionTags({
@@ -300,7 +301,8 @@ export async function createOneCollection({ session, ...props }: CreateOneCollec
         ...(externalFileId ? { externalFileId } : {}),
         ...(externalFileUrl ? { externalFileUrl } : {}),
         ...(apiFileId ? { apiFileId } : {}),
-        ...(apiFileParentId ? { apiFileParentId } : {})
+        ...(apiFileParentId ? { apiFileParentId } : {}),
+        ...(tableSchema ? { tableSchema } : {})
       }
     ],
     { session, ordered: true }

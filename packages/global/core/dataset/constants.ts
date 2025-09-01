@@ -13,30 +13,17 @@ export enum DatasetTypeEnum {
   database = 'database'
 }
 
-interface DatasetTypeConfig {
-  icon: string;
-  avatar: string;
-  label: any;
-  collectionLabel: string;
-  courseUrl?: string;
-  formConfig?: {
-    vectorModel?: {
-      isHidden?: boolean;
-      tip?: string;
-    };
-    agentModel?: {
-      isHidden?: boolean;
-      tip?: string;
-    };
-    vlmModel?: {
-      isHidden?: boolean;
-      tip?: string;
-    };
-  };
-}
-
 // @ts-ignore
-export const ApiDatasetTypeMap: Record<`${DatasetTypeEnum}`, DatasetTypeConfig> = {
+export const ApiDatasetTypeMap: Record<
+  `${DatasetTypeEnum}`,
+  {
+    icon: string;
+    avatar: string;
+    label: any;
+    collectionLabel: string;
+    courseUrl?: string;
+  }
+> = {
   [DatasetTypeEnum.apiDataset]: {
     icon: 'core/dataset/externalDatasetOutline',
     avatar: 'core/dataset/externalDatasetColor',
@@ -137,7 +124,8 @@ export enum DatasetCollectionTypeEnum {
   link = 'link', // one link
   externalFile = 'externalFile',
   apiFile = 'apiFile',
-  images = 'images'
+  images = 'images',
+  table = 'table' // database table
 }
 export const DatasetCollectionTypeMap = {
   [DatasetCollectionTypeEnum.folder]: {
@@ -187,7 +175,7 @@ export enum DatasetCollectionDataProcessModeEnum {
 
   backup = 'backup',
   template = 'template',
-
+  databaseSchema = 'databaseSchema',
   auto = 'auto' // abandon
 }
 export const DatasetCollectionDataProcessModeMap = {
@@ -259,7 +247,8 @@ export enum TrainingModeEnum {
   qa = 'qa',
   auto = 'auto',
   image = 'image',
-  imageParse = 'imageParse'
+  imageParse = 'imageParse',
+  databaseSchema = 'databaseSchema'
 }
 
 /* ------------ search -------------- */
