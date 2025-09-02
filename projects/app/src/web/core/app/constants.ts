@@ -10,7 +10,7 @@ export const defaultApp: AppDetailType = {
   _id: '',
   name: 'AI',
   type: AppTypeEnum.simple,
-  avatar: '/icon/logo.svg',
+  avatar: '/icon/huaneng-logo.png',
   intro: '',
   updateTime: new Date(),
   modules: [],
