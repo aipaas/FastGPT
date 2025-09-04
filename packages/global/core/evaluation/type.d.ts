@@ -1,6 +1,7 @@
 import type { EvaluationStatusEnum } from './constants';
 import type { EvalDatasetDataSchemaType } from './dataset/type';
 import type { MetricResult } from './metric/type';
+import type { EvaluationPermission } from '../../../support/permission/evaluation/controller';
 
 // Evaluation target related types
 export interface WorkflowConfig {
@@ -122,3 +123,7 @@ export interface EvaluationItemJobData {
   evalId: string;
   evalItemId: string;
 }
+
+export type EvaluationDetailType = EvaluationSchemaType & {
+  permission: EvaluationPermission;
+};
