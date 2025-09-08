@@ -3,6 +3,9 @@ import { NextAPI } from '@/service/middleware/entry';
 import { MongoEvalMetric } from '@fastgpt/service/core/evaluation/metric/schema';
 import { EvalMetricTypeEnum } from '@fastgpt/global/core/evaluation/metric/constants';
 import { authEvaluationMetricWrite } from '@fastgpt/service/core/evaluation/common';
+import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
+import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
+
 type Query = { id: string };
 
 async function handler(req: ApiRequestProps<{}, Query>, res: ApiResponseType<any>) {
@@ -11,7 +14,7 @@ async function handler(req: ApiRequestProps<{}, Query>, res: ApiResponseType<any
     return Promise.reject('Missing required parameter: id');
   }
 
-  const { teamId } = await authEvaluationMetricWrite(id, {
+  const { teamId, tmbId } = await authEvaluationMetricWrite(id, {
     req,
     authApiKey: true,
     authToken: true
@@ -28,14 +31,14 @@ async function handler(req: ApiRequestProps<{}, Query>, res: ApiResponseType<any
 
   await MongoEvalMetric.findByIdAndDelete(id);
 
-  // addAuditLog({
-  //   tmbId,
-  //   teamId,
-  //   event: AuditEventEnum.DELETE_EVALUATION_METRIC,
-  //   params: {
-  //     name: metric.name
-  //   }
-  // });
+  addAuditLog({
+    tmbId,
+    teamId,
+    event: AuditEventEnum.DELETE_EVALUATION_METRIC,
+    params: {
+      metricName: metric.name.trim()
+    }
+  });
 
   return {};
 }

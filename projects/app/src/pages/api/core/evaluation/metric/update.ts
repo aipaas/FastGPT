@@ -4,9 +4,12 @@ import { MongoEvalMetric } from '@fastgpt/service/core/evaluation/metric/schema'
 import type { UpdateMetricBody } from '@fastgpt/global/core/evaluation/metric/api';
 import { EvalMetricTypeEnum } from '@fastgpt/global/core/evaluation/metric/constants';
 import { authEvaluationMetricWrite } from '@fastgpt/service/core/evaluation/common';
+import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
+import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
+
 async function handler(req: ApiRequestProps<UpdateMetricBody, {}>, res: ApiResponseType<any>) {
   const { id, name, description, prompt } = req.body;
-  const { teamId } = await authEvaluationMetricWrite(id, {
+  const { teamId, tmbId } = await authEvaluationMetricWrite(id, {
     req,
     authApiKey: true,
     authToken: true
@@ -54,14 +57,14 @@ async function handler(req: ApiRequestProps<UpdateMetricBody, {}>, res: ApiRespo
 
   await metric.save();
 
-  // addAuditLog({
-  //   tmbId,
-  //   teamId,
-  //   event: AuditEventEnum.UPDATE_EVALUATION_METRIC,
-  //   params: {
-  //     name: metric.name
-  //   }
-  // });
+  addAuditLog({
+    tmbId,
+    teamId,
+    event: AuditEventEnum.UPDATE_EVALUATION_METRIC,
+    params: {
+      metricName: metric.name.trim()
+    }
+  });
 
   return {
     id: metric._id.toString(),

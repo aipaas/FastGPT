@@ -53,6 +53,7 @@
   "create_department": "創建子部門",
   "create_evaluation_dataset_collection": "創建評測數據集",
   "create_evaluation_dataset_data": "創建評測數據",
+  "create_evaluation_metric": "創建評測維度",
   "create_group": "建立群組",
   "create_invitation_link": "建立邀請連結",
   "create_invoice": "開發票",
@@ -79,6 +80,7 @@
   "delete_evaluation_dataset_collection": "刪除評測數據集",
   "delete_evaluation_dataset_data": "刪除評測數據",
   "delete_evaluation_dataset_task": "刪除評測數據集任務",
+  "delete_evaluation_metric": "刪除評測維度",
   "delete_from_org": "移出部門",
   "delete_from_team": "移出團隊",
   "delete_group": "刪除群組",
@@ -268,6 +270,7 @@
   "update_dataset_collaborator": "知識庫權限更改",
   "update_evaluation_dataset_collection": "更新評測數據集",
   "update_evaluation_dataset_data": "更新評測數據",
+  "update_evaluation_metric": "更新評測維度",
   "update_publish_app": "應用更新",
   "used_times_limit": "有效人數",
   "user_name": "使用者名稱",
@@ -285,5 +288,8 @@
   "log_smart_generate_evaluation_data": "【{{name}}】在評測數據集【{{collectionName}}】中智慧生成了評測數據",
   "log_delete_evaluation_dataset_task": "【{{name}}】刪除了評測數據集【{{collectionName}}】中的任務",
   "log_retry_evaluation_dataset_task": "【{{name}}】重試了評測數據集【{{collectionName}}】中的任務",
-  "log_import_evaluation_dataset_data": "【{{name}}】向評測數據集【{{collectionName}}】匯入了{{recordCount}}條評測數據"
+  "log_import_evaluation_dataset_data": "【{{name}}】向評測數據集【{{collectionName}}】匯入了{{recordCount}}條評測數據",
+  "log_create_evaluation_metric": "【{{name}}】創建了名為【{{metricName}}】的評測維度",
+  "log_delete_evaluation_metric": "【{{name}}】删除了名為【{{metricName}}】的評測維度",
+  "log_update_evaluation_metric": "【{{name}}】更新了名為【{{metricName}}】的評測維度"
 }
