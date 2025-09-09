@@ -3,6 +3,7 @@ import type {
   EvaluationRequest,
   EvaluationResponse
 } from '@fastgpt/global/core/evaluation/metric/type';
+import { EvaluationErrEnum } from '@fastgpt/global/common/error/code/evaluation';
 
 function loadHttpConfigFromEnv(): HttpConfig {
   return {
@@ -35,16 +36,39 @@ export function createDitingClient(config: HttpConfig = loadHttpConfigFromEnv())
 
         if (!res.ok) {
           const errorText = await res.text().catch(() => res.statusText);
-          throw new Error(`HTTP ${res.status}: ${errorText}`);
+          if (res.status >= 500) {
+            throw new Error(EvaluationErrEnum.evaluatorServiceUnavailable);
+          } else {
+            throw new Error(EvaluationErrEnum.evaluatorInvalidResponse);
+          }
         }
 
-        return (await res.json()) as EvaluationResponse;
+        const response = await res.json();
+        if (!response) {
+          throw new Error(EvaluationErrEnum.evaluatorInvalidResponse);
+        }
+        
+        return response as EvaluationResponse;
       } catch (err: any) {
         clearTimeout(timeoutId);
+        
         if (err.name === 'AbortError') {
-          throw new Error('Evaluation request timeout');
+          throw new Error(EvaluationErrEnum.evaluatorRequestTimeout);
         }
-        throw err;
+        
+        // Node.js 网络连接错误码检测
+        const networkErrorCodes = ['ECONNREFUSED', 'ENOTFOUND', 'ECONNRESET', 'ETIMEDOUT'];
+        if (err.code && networkErrorCodes.includes(err.code)) {
+          throw new Error(EvaluationErrEnum.evaluatorNetworkError);
+        }
+        
+        // 如果已经是我们定义的错误码，直接抛出
+        if (Object.values(EvaluationErrEnum).includes(err.message)) {
+          throw err;
+        }
+        
+        // 其他未知错误
+        throw new Error(EvaluationErrEnum.evaluatorServiceUnavailable);
       }
     }
   };

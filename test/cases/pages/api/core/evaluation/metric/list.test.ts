@@ -6,6 +6,7 @@ import { addSourceMember } from '@fastgpt/service/support/user/utils';
 import { getEvaluationPermissionAggregation } from '@fastgpt/service/core/evaluation/common';
 import type { ListMetricsBody } from '@fastgpt/global/core/evaluation/metric/api';
 import { Types } from '@fastgpt/service/common/mongo';
+import { EvaluationErrEnum } from '@fastgpt/global/common/error/code/evaluation';
 
 // Mock dependencies
 vi.mock('@fastgpt/service/core/evaluation/metric/schema', () => ({
@@ -436,7 +437,7 @@ describe('/api/core/evaluation/metric/list', () => {
       } as ListMetricsBody
     };
 
-    await expect(handler(req as any)).rejects.toBe('Failed to fetch evaluation metrics');
+    await expect(handler(req as any)).rejects.toThrow('Database query failed');
 
     expect(authUserPer).toHaveBeenCalled();
     expect(MongoEvalMetric.find).toHaveBeenCalled();

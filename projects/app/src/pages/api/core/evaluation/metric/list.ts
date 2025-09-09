@@ -12,6 +12,7 @@ import { sumPer } from '@fastgpt/global/support/permission/utils';
 import type { ListMetricsBody } from '@fastgpt/global/core/evaluation/metric/api';
 import { addLog } from '@fastgpt/service/common/system/log';
 import { getEvaluationPermissionAggregation } from '@fastgpt/service/core/evaluation/common';
+import { EvaluationErrEnum } from '@fastgpt/global/common/error/code/evaluation';
 
 async function handler(req: ApiRequestProps<ListMetricsBody, {}>) {
   const { teamId, tmbId } = await authUserPer({
@@ -135,7 +136,8 @@ async function handler(req: ApiRequestProps<ListMetricsBody, {}>) {
 
     return finalResult;
   } catch (error) {
-    return Promise.reject('Failed to fetch evaluation metrics');
+    addLog.error('[Evaluation Metric] Failed to fetch evaluation metrics', error);
+    return Promise.reject(error);
   }
 }
 

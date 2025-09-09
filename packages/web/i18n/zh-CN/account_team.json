@@ -277,6 +277,7 @@
   "update_evaluation_dataset_collection": "更新评测数据集",
   "update_evaluation_dataset_data": "更新评测数据",
   "update_evaluation_metric": "更新评测维度",
+  "debug_evaluation_metric": "调试评测维度",
   "update_publish_app": "应用更新",
   "used_times_limit": "有效人数",
   "user_name": "用户名",
@@ -297,5 +298,6 @@
   "log_import_evaluation_dataset_data": "【{{name}}】向评测数据集【{{collectionName}}】导入了{{recordCount}}条评测数据",
   "log_create_evaluation_metric": "【{{name}}】创建了名为【{{metricName}}】的评测维度",
   "log_delete_evaluation_metric": "【{{name}}】删除了名为【{{metricName}}】的评测维度",
-  "log_update_evaluation_metric": "【{{name}}】更新了名为【{{metricName}}】的评测维度"
+  "log_update_evaluation_metric": "【{{name}}】更新了名为【{{metricName}}】的评测维度",
+  "log_debug_evaluation_metric": "【{{name}}】调试了名为【{{metricName}}】的评测维度"
 }

@@ -6,6 +6,7 @@ import { EvalMetricTypeEnum } from '@fastgpt/global/core/evaluation/metric/const
 import { authEvaluationMetricCreate } from '@fastgpt/service/core/evaluation/common';
 import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
 import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
+import { EvaluationErrEnum } from '@fastgpt/global/common/error/code/evaluation';
 
 async function handler(req: ApiRequestProps<CreateMetricBody, {}>, res: ApiResponseType<any>) {
   const { name, description, prompt } = req.body;
@@ -17,27 +18,27 @@ async function handler(req: ApiRequestProps<CreateMetricBody, {}>, res: ApiRespo
   });
 
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
-    return Promise.reject('Metric name is required and must be a non-empty string');
+    return Promise.reject(EvaluationErrEnum.metricNameRequired);
   }
 
   if (name.trim().length > 100) {
-    return Promise.reject('Metric name must be less than 100 characters');
+    return Promise.reject(EvaluationErrEnum.metricNameTooLong);
   }
 
   if (description && typeof description !== 'string') {
-    return Promise.reject('Description must be a string');
+    return Promise.reject(EvaluationErrEnum.metricDescriptionTooLong);
   }
 
   if (description && description.length > 100) {
-    return Promise.reject('Description must be less than 100 characters');
+    return Promise.reject(EvaluationErrEnum.metricDescriptionTooLong);
   }
 
   if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-    return Promise.reject('Metric prompt is required and must be a non-empty string');
+    return Promise.reject(EvaluationErrEnum.metricPromptRequired);
   }
 
   if (prompt.trim().length > 4000) {
-    return Promise.reject('Prompt must be less than 4000 characters');
+    return Promise.reject(EvaluationErrEnum.metricPromptTooLong);
   }
 
   const metric = await MongoEvalMetric.create({
@@ -55,14 +56,16 @@ async function handler(req: ApiRequestProps<CreateMetricBody, {}>, res: ApiRespo
     updateTime: new Date()
   });
 
-  addAuditLog({
-    tmbId,
-    teamId,
-    event: AuditEventEnum.CREATE_EVALUATION_METRIC,
-    params: {
-      metricName: name.trim()
-    }
-  });
+  (async () => {
+    addAuditLog({
+      tmbId,
+      teamId,
+      event: AuditEventEnum.CREATE_EVALUATION_METRIC,
+      params: {
+        metricName: name.trim()
+      }
+    });
+  })();
 
   return {
     id: metric._id.toString(),

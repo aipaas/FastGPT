@@ -4,6 +4,7 @@ import { MongoEvalMetric } from '@fastgpt/service/core/evaluation/metric/schema'
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { EvalMetricTypeEnum } from '@fastgpt/global/core/evaluation/metric/constants';
 import type { CreateMetricBody } from '@fastgpt/global/core/evaluation/metric/api';
+import { EvaluationErrEnum } from '@fastgpt/global/common/error/code/evaluation';
 
 // Mock dependencies
 vi.mock('@fastgpt/service/core/evaluation/metric/schema', () => ({
@@ -199,9 +200,7 @@ describe('/api/core/evaluation/metric/create', () => {
       }
     };
 
-    await expect(handler(req as any, {} as any)).rejects.toBe(
-      'Metric name is required and must be a non-empty string'
-    );
+    await expect(handler(req as any, {} as any)).rejects.toBe(EvaluationErrEnum.metricNameRequired);
 
     // Auth should be called but database should not
     expect(authUserPer).toHaveBeenCalled();
@@ -236,9 +235,7 @@ describe('/api/core/evaluation/metric/create', () => {
       }
     };
 
-    await expect(handler(req as any, {} as any)).rejects.toBe(
-      'Metric name is required and must be a non-empty string'
-    );
+    await expect(handler(req as any, {} as any)).rejects.toBe(EvaluationErrEnum.metricNameRequired);
 
     expect(authUserPer).toHaveBeenCalled();
     expect(MongoEvalMetric.create).not.toHaveBeenCalled();
@@ -271,9 +268,7 @@ describe('/api/core/evaluation/metric/create', () => {
       }
     };
 
-    await expect(handler(req as any, {} as any)).rejects.toBe(
-      'Metric prompt is required and must be a non-empty string'
-    );
+    await expect(handler(req as any, {} as any)).rejects.toBe(EvaluationErrEnum.metricPromptRequired);
 
     expect(authUserPer).toHaveBeenCalled();
     expect(MongoEvalMetric.create).not.toHaveBeenCalled();
@@ -307,9 +302,7 @@ describe('/api/core/evaluation/metric/create', () => {
       }
     };
 
-    await expect(handler(req as any, {} as any)).rejects.toBe(
-      'Metric prompt is required and must be a non-empty string'
-    );
+    await expect(handler(req as any, {} as any)).rejects.toBe(EvaluationErrEnum.metricPromptRequired);
 
     expect(authUserPer).toHaveBeenCalled();
     expect(MongoEvalMetric.create).not.toHaveBeenCalled();

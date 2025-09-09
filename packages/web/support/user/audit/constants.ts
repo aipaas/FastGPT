@@ -557,6 +557,14 @@ export const auditLogMap = {
       metricName: string;
     }
   },
+  [AuditEventEnum.DEBUG_EVALUATION_METRIC]: {
+    content: i18nT('account_team:log_debug_evaluation_metric'),
+    typeLabel: i18nT('account_team:debug_evaluation_metric'),
+    params: {} as {
+      name?: string;
+      metricName: string;
+    }
+  },
   //SearchTest
   [AuditEventEnum.SEARCH_TEST]: {
     content: i18nT('account_team:log_search_test'),
