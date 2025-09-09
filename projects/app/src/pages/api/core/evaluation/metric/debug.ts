@@ -7,8 +7,7 @@ import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
 import { addAuditLog } from '@fastgpt/service/support/user/audit/util';
 import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
-import { createUsage } from '@fastgpt/service/support/wallet/usage/controller';
-import { UsageSourceEnum } from '@fastgpt/global/support/wallet/usage/constants';
+import { createEvaluationMetricDebugUsage } from '@fastgpt/service/support/wallet/usage/controller';
 import { checkTeamAIPoints } from '@fastgpt/service/support/permission/teamLimit';
 import { EvalMetricTypeEnum, EvalMetricTypeValues } from '@fastgpt/global/core/evaluation/metric/constants';
 import { EvaluationErrEnum } from '@fastgpt/global/common/error/code/evaluation';
@@ -134,22 +133,16 @@ async function handler(req: ApiRequestProps<DebugMetricBody, {}>, res: ApiRespon
   try {
     const result = await ditingEvaluator.evaluate(evalCase);
     
+    // 处理计费逻辑
     if (result.totalPoints && result.totalPoints > 0) {
-      createUsage({
+      await createEvaluationMetricDebugUsage({
         teamId,
         tmbId,
-        appName: 'Debug Evaluation Metric',
+        metricName: metricConfig.metricName,
         totalPoints: result.totalPoints,
-        source: UsageSourceEnum.evaluation,
-        list: [
-          {
-            moduleName: `Debug: ${metricConfig.metricName}`,
-            amount: result.totalPoints,
-            model: llmConfig.name,
-            inputTokens: result.usages?.reduce((sum, u) => sum + (u.prompt_tokens || 0), 0) || 0,
-            outputTokens: result.usages?.reduce((sum, u) => sum + (u.completion_tokens || 0), 0) || 0
-          }
-        ]
+        model: llmConfig.name,
+        inputTokens: result.usages?.reduce((sum, u) => sum + (u.prompt_tokens || 0), 0) || 0,
+        outputTokens: result.usages?.reduce((sum, u) => sum + (u.completion_tokens || 0), 0) || 0
       });
     }
     

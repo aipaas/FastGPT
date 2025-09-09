@@ -3,7 +3,7 @@ import { handler } from '@/pages/api/core/evaluation/metric/debug';
 import { authUserPer } from '@fastgpt/service/support/permission/user/auth';
 import { DitingEvaluator } from '@fastgpt/service/core/evaluation/evaluator';
 import { checkTeamAIPoints } from '@fastgpt/service/support/permission/teamLimit';
-import { createUsage } from '@fastgpt/service/support/wallet/usage/controller';
+import { createEvaluationMetricDebugUsage } from '@fastgpt/service/support/wallet/usage/controller';
 import type { DebugMetricBody } from '@fastgpt/global/core/evaluation/metric/api';
 import { TeamErrEnum } from '@fastgpt/global/common/error/code/team';
 import { EvaluationErrEnum } from '@fastgpt/global/common/error/code/evaluation';
@@ -22,7 +22,7 @@ vi.mock('@fastgpt/service/support/permission/teamLimit', () => ({
 }));
 
 vi.mock('@fastgpt/service/support/wallet/usage/controller', () => ({
-  createUsage: vi.fn()
+  createEvaluationMetricDebugUsage: vi.fn()
 }));
 
 vi.mock('@fastgpt/service/support/user/audit/util', () => ({
@@ -78,8 +78,8 @@ describe('/api/core/evaluation/metric/debug', () => {
       evaluate: mockEvaluate
     }) as any);
 
-    // Mock createUsage
-    vi.mocked(createUsage).mockResolvedValue(undefined);
+    // Mock createEvaluationMetricDebugUsage
+    vi.mocked(createEvaluationMetricDebugUsage).mockResolvedValue();
 
     const req = {
       body: {
@@ -134,22 +134,15 @@ describe('/api/core/evaluation/metric/debug', () => {
       expectedOutput: 'Paris is the capital of France.'
     });
 
-    // Verify createUsage was called for billing
-    expect(createUsage).toHaveBeenCalledWith({
+    // Verify createEvaluationMetricDebugUsage was called for billing
+    expect(createEvaluationMetricDebugUsage).toHaveBeenCalledWith({
       teamId: mockTeamId,
       tmbId: mockTmbId,
-      appName: 'Debug Evaluation Metric',
+      metricName: 'Test Metric',
       totalPoints: 10,
-      source: 'evaluation',
-      list: [
-        {
-          moduleName: 'Debug: Test Metric',
-          amount: 10,
-          model: 'gpt-3.5-turbo',
-          inputTokens: 100,
-          outputTokens: 50
-        }
-      ]
+      model: 'gpt-3.5-turbo',
+      inputTokens: 100,
+      outputTokens: 50
     });
 
     // Verify response
@@ -205,7 +198,7 @@ describe('/api/core/evaluation/metric/debug', () => {
     expect(authUserPer).toHaveBeenCalled();
     expect(checkTeamAIPoints).toHaveBeenCalledWith(mockTeamId);
     expect(DitingEvaluator).not.toHaveBeenCalled();
-    expect(createUsage).not.toHaveBeenCalled();
+    expect(createEvaluationMetricDebugUsage).not.toHaveBeenCalled();
   });
 
   it('should reject when userInput is missing', async () => {
