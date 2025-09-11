@@ -12,6 +12,13 @@ export enum DatasetTypeEnum {
   yuque = 'yuque',
   database = 'database'
 }
+/* ------------ database_dataset -------------- */
+export enum DatabaseType {
+  mysql = 'mysql',
+  postgresql = 'postgresql',
+  mssql = 'mssql',
+  sqlite = 'sqlite'
+};
 
 // @ts-ignore
 export const ApiDatasetTypeMap: Record<
