@@ -6,8 +6,10 @@ import { testDatabaseConnection } from '@fastgpt/service/core/dataset/database/c
 import type { DatabaseConfig } from '@fastgpt/global/core/dataset/type';
 import type { ApiRequestProps } from '@fastgpt/service/type/next';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
-export type CheckConnectionBody = {
+type Query = {
   datasetId: string;
+}
+export type CheckConnectionBody = {
   databaseConfig: DatabaseConfig;
 };
 
@@ -17,9 +19,10 @@ export type CheckConnectionResponse = {
 };
 
 async function handler(
-  req: ApiRequestProps<CheckConnectionBody>
+  req: ApiRequestProps<CheckConnectionBody,Query>
 ): Promise<CheckConnectionResponse> {
-  const { datasetId, databaseConfig } = req.body;
+  const {datasetId} = req.query
+  const {databaseConfig } = req.body;
 
   // 权限验证（如果提供了datasetId）
     if (!datasetId) {

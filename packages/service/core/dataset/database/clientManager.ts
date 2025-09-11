@@ -12,10 +12,6 @@ export async function createDatabaseClient(config: DatabaseConfig): Promise<Asyn
     switch (config.client) {
         case 'mysql':
             return MysqlClient.fromConfig(config);
-        case 'postgresql':
-            return PostgreSQLClient.fromConfig(config);
-        case 'sqlite':
-            return SQLiteClient.fromConfig(config);
         default:
             return Promise.reject(DatabaseErrEnum.notSupportType);
     }

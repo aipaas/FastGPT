@@ -21,7 +21,7 @@ import {
 } from '../redis/cache';
 import { throttle } from 'lodash';
 import { retryFn } from '@fastgpt/global/common/system/utils';
-
+import { DBDatasetVectorTableName,DBDatasetValueVectorTableName } from './constants';
 const getVectorObj = () => {
   if (PG_ADDRESS) return new PgVectorCtrl();
   if (OCEANBASE_ADDRESS) return new ObVectorCtrl();
@@ -42,6 +42,7 @@ const Vector = getVectorObj();
 export const initVectorStore = Vector.init;
 export const recallFromVectorStore = (props: EmbeddingRecallCtrlProps) =>
   retryFn(() => Vector.embRecall(props));
+export const databaseEmbeddingRecall = Vector.databaseEmbRecall;
 export const getVectorDataByTime = Vector.getVectorDataByTime;
 
 export const getVectorCountByTeamId = async (teamId: string) => {
@@ -94,4 +95,124 @@ export const deleteDatasetDataVector = async (props: DelDatasetVectorCtrlProps) 
   const result = await retryFn(() => Vector.delete(props));
   onDelCache(props.teamId);
   return result;
+};
+
+/*Database Dataset specific operations*/
+
+// Beta
+export const insertTableDescriptionVector = async ({
+  model,
+  query,
+  teamId,
+  datasetId,
+  collectionId,
+  table_des_index,
+}: {
+  model: EmbeddingModelItemType;
+  query: string;
+  teamId: string;
+  datasetId: string;
+  collectionId: string;
+  table_des_index: string;
+}) => {
+  return retryFn(async () => {
+    const { vectors, tokens } = await getVectorsByText({
+      model,
+      input: query,
+      type: 'db'
+    });
+    const { insertIds } = await Vector.insert({
+      teamId,
+      datasetId,
+      collectionId,
+      vectors: vectors,
+      table_des_index,
+      tableName:DBDatasetVectorTableName,
+    });
+
+    onIncrCache(teamId);
+
+    return {
+      tokens,
+      insertIds
+    };
+  });
+};
+
+export const insertCoulmnDescriptionVector = async ({
+  model,
+  query,
+  teamId,
+  datasetId,
+  collectionId,
+  column_des_index,
+}: {
+  model: EmbeddingModelItemType;
+  query: string;
+  teamId: string;
+  datasetId: string;
+  collectionId: string;
+  column_des_index: string;
+}) => {
+  return retryFn(async () => {
+    const { vectors, tokens } = await getVectorsByText({
+      model,
+      input: query,
+      type: 'db'
+    });
+    const { insertIds } = await Vector.insert({
+      teamId,
+      datasetId,
+      collectionId,
+      vectors: vectors,
+      column_des_index,
+      tableName:DBDatasetVectorTableName,
+    });
+
+    onIncrCache(teamId);
+
+    return {
+      tokens,
+      insertIds
+    };
+  });
+};
+
+
+export const insertTableValueVector = async ({
+  model,
+  query,
+  teamId,
+  datasetId,
+  collectionId,
+  column_val_index
+}: {
+  model: EmbeddingModelItemType;
+  query: string;
+  teamId: string;
+  datasetId: string;
+  collectionId: string;
+  column_val_index: string;
+}) => {
+  return retryFn(async () => {
+    const { vectors, tokens } = await getVectorsByText({
+      model,
+      input: query,
+      type: 'db'
+    });
+
+    const { insertIds } = await Vector.insert({
+      teamId,
+      datasetId,
+      collectionId,
+      vectors: vectors,
+      column_val_index,
+      tableName:DBDatasetValueVectorTableName,
+    });
+
+    return {
+      tokens,
+      insertIds
+    };
+  });
 };

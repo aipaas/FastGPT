@@ -8,14 +8,14 @@ export class TableColumn {
     public columnType: ColumnType;
     private _description: string = "";
     public examples: Array<string>;
-    public enabled: boolean;
+    public forbid: boolean;
     public value_index: boolean;
 
     constructor(
         columnName: string,
         columnType: ColumnType,
         description: string = "",
-        enabled: boolean = true,
+        forbid: boolean = true,
         value_index: boolean = true,
         examples: Array<string> = [],
     ) {
@@ -23,7 +23,7 @@ export class TableColumn {
         this.columnType = columnType;
         this.description = description; // 会触发 setter 校验
         this.examples = examples;
-        this.enabled = enabled;
+        this.forbid = forbid;
         this.value_index = value_index;
     }
 
@@ -49,7 +49,7 @@ export class TableColumnTransformer implements ValueTransformer {
             columnType: entityValue.columnType,
             description: entityValue.description,
             examples: entityValue.examples,
-            enabled: entityValue.enabled,
+            forbid: entityValue.forbid,
             value_index: entityValue.value_index,
         };
     }
@@ -61,7 +61,7 @@ export class TableColumnTransformer implements ValueTransformer {
             databaseValue.columnName,
             databaseValue.columnType,
             databaseValue.description,
-            databaseValue.enabled,
+            databaseValue.forbid,
             databaseValue.value_index,
             databaseValue.examples
         );
@@ -147,7 +147,7 @@ export class TableKeyInfo {
 export class DBTable extends TableKeyInfo {
     private _name: string = "";
     private _description: string = "";
-    enabled: boolean;
+    forbid: boolean;
     indexes: Array<TableIndex>;
     constraints: Array<TableConstraint>;
     rowCount?: number;
@@ -156,7 +156,7 @@ export class DBTable extends TableKeyInfo {
     constructor(
         name: string,
         description: string = "",
-        enabled: boolean = true,
+        forbid: boolean = true,
         columns: Map<string, TableColumn>,
         foreign_keys: Array<TableForeignKey>,
         primary_keys: Array<string>,
@@ -166,7 +166,7 @@ export class DBTable extends TableKeyInfo {
         super(columns, foreign_keys, primary_keys)
         this.name = name
         this.description = description
-        this.enabled = enabled
+        this.forbid = forbid
         this.indexes = indexes;
         this.constraints = constraints;
     }
@@ -237,7 +237,7 @@ export class DBIntrospector {
         return new DBTable(
             tableName,
             tableComment,
-            true,
+            false,
             columns,
             foreignKeys,
             primaryKeys

@@ -5,6 +5,7 @@ import {DBTable, TableColumn, TableKeyInfo, TableForeignKey, TableIndex, TableCo
 import {truncateText, isStringType, convertValueToString} from "./utils";;
 import type {TableColumn as ORMColumn, ColumnType, DataSourceOptions, Driver} from "typeorm";
 import {DataSource, Entity} from "typeorm";
+
 export abstract class AsyncDB {
   protected db: DataSource;
   protected config: DatabaseConfig;
@@ -43,8 +44,9 @@ export abstract class AsyncDB {
           password: config.password,
           database: config.database,
           synchronize: false,
-          logging: false,
+          logging: false
       };
+      console.debug(`[AsyncDB.from_uri]:${Object.values(options)}`)
       return new DataSource(options);
   }
 
@@ -130,7 +132,7 @@ export abstract class AsyncDB {
                   );
 
                   // 添加列的详细属性
-                  tableColumn.enabled = !column.isGenerated; // 生成列可能不需要启用
+                  // tableColumn.forbid = !column.isGenerated;
 
                   columns.set(column.name, tableColumn);
               }
@@ -211,7 +213,7 @@ export abstract class AsyncDB {
               const dbTable = new DBTable(
                   tableName,
                   tableMetadata.comment || '',
-                  true,
+                  false,
                   columns,
                   foreignKeys,
                   primaryKeys,
@@ -415,7 +417,7 @@ export abstract class AsyncDB {
                   col.name,
                   col.type as ColumnType,
                   col.comment || "",
-                  true,
+                  false,
                   valueIndex,
                   examples
               );
@@ -437,7 +439,7 @@ export abstract class AsyncDB {
           return new DBTable(
               tableName,
               tableComment,
-              true,
+              false,
               columns,
               foreignKeys,
               primaryKeys,

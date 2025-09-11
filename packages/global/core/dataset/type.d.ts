@@ -54,6 +54,7 @@ export type ChunkSettingsType = {
 
   qaPrompt?: string;
 };
+
 export type DatabaseConfig = {
   client: `${DatabaseType}`;
   version?: string;
@@ -64,7 +65,7 @@ export type DatabaseConfig = {
   password: string;
   encrypt?: boolean;
   poolSize?: number;
-}
+};
 
 // Database table schema types
 export type ColumnSchemaType = {
@@ -72,16 +73,19 @@ export type ColumnSchemaType = {
   columnType: string;
   description: string;
   examples: string[];
-  enabled: boolean;
+  forbid: boolean;
   valueIndex: boolean;
   
   // Database attributes
-  isPrimaryKey: boolean;
-  isForeignKey: boolean;
-  relatedColumns: string[];
+  isNullable?: boolean;
+  defaultValue?: string;
+  isAutoIncrement?: boolean;
+  isPrimaryKey?: boolean;
+  isForeignKey?: boolean;
+  relatedColumns?: string[];
   
   // Extended metadata
-  metadata: Record<string, any>;
+  metadata?: Record<string, any>;
 };
 
 export type ForeignKeySchemaType = {
@@ -108,15 +112,16 @@ export type ConstraintSchemaType = {
 export type TableSchemaType = {
   tableName: string;
   description: string;
-  enabled: boolean;
   columns: Record<string, ColumnSchemaType>;
   foreignKeys: ForeignKeySchemaType[];
   primaryKeys: string[];
   indexes: IndexSchemaType[];
   constraints: ConstraintSchemaType[];
   rowCount?: number;
+  estimatedSize?: string;
   lastUpdated: Date;
 };
+
 export type DatasetSchemaType = {
   _id: string;
   parentId: ParentIdType;
@@ -191,6 +196,9 @@ export type DatasetCollectionSchemaType = ChunkSettingsType & {
   // Parse settings
   customPdfParse?: boolean;
   trainingType: DatasetCollectionDataProcessModeEnum;
+  
+  // Database table schema (for database type collections)
+  tableSchema?: TableSchemaType;
 };
 
 export type DatasetCollectionTagsSchemaType = {

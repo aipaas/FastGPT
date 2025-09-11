@@ -16,7 +16,7 @@ const ColumnSchema = new Schema({
   columnType: { type: String, default: 'TEXT' },
   description: { type: String, default: '' },
   examples: { type: [String], default: [] },
-  enabled: { type: Boolean, default: true },
+  forbid: { type: Boolean, default: false },
   valueIndex: { type: Boolean, default: true },
   
   // Database attributes
@@ -101,7 +101,6 @@ const DatasetCollectionSchema = new Schema({
     type: {
       tableName: { type: String, required: true },
       description: { type: String, default: '' },
-      enabled: { type: Boolean, default: true },
       columns: { 
         type: Map,
         of: ColumnSchema,

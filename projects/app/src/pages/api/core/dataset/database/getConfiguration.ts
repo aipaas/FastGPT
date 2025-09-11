@@ -15,13 +15,13 @@ export type GetConfigurationResponse = {
   tables: Array<{
     tableName: string;
     description: string;
-    enabled: boolean;
+    forbid: boolean;
     columns: Record<string, {
       columnName: string;
       columnType: string;
       description: string;
       examples: string[];
-      enabled: boolean;
+      forbid: boolean;
       valueIndex: boolean;
     }>;
     foreignKeys: Array<{
@@ -70,7 +70,7 @@ async function handler(
                 columnType: String(value.columnType),
                 description: value.description || '',
                 examples: value.examples || [],
-                enabled: value.enabled ?? true,
+                forbid: value.forbid ?? false,
                 valueIndex: value.value_index ?? true
               };
             });
@@ -79,7 +79,7 @@ async function handler(
           tableList.push({
             tableName: tableInfo.name,
             description: tableInfo.description || '',
-            enabled: tableInfo.enabled ?? true,
+            forbid: tableInfo.forbid ?? false,
             columns: columnsObj,
             foreignKeys: tableInfo.foreign_keys?.map(fk => ({
               constrainedColumns: fk.constrained_columns,
