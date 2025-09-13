@@ -11,14 +11,19 @@ import { authFrequencyLimit } from '@/service/common/frequencyLimit/api';
 import { addSeconds } from 'date-fns';
 import { authChatCrud } from '@/service/support/permission/auth/chat';
 import { authDataset } from '@fastgpt/service/support/permission/dataset/auth';
+import { authEvalDataset } from '@fastgpt/service/support/permission/evaluation/auth';
 import { type OutLinkChatAuthProps } from '@fastgpt/global/support/permission/chat';
 import { WritePermissionVal } from '@fastgpt/global/support/permission/constant';
+import { authEvaluationDatasetCreate } from '@fastgpt/service/core/evaluation/common';
 
 export type UploadChatFileProps = {
   appId: string;
 } & OutLinkChatAuthProps;
 export type UploadDatasetFileProps = {
   datasetId: string;
+};
+export type UploadEvaluationFileProps = {
+  collectionId?: string;
 };
 
 const authUploadLimit = (tmbId: string) => {
@@ -39,7 +44,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
       maxSize: global.feConfigs?.uploadFileMaxSize
     });
     const { file, bucketName, metadata, data } = await upload.getUploadFile<
-      UploadChatFileProps | UploadDatasetFileProps
+      UploadChatFileProps | UploadDatasetFileProps | UploadEvaluationFileProps
     >(req, res);
     filePaths.push(file.path);
 
@@ -70,6 +75,33 @@ async function handler(req: NextApiRequest, res: NextApiResponse<any>) {
           teamId: authData.teamId,
           uid: authData.tmbId
         };
+      }
+      if (bucketName === 'evaluation') {
+        const evalData = data as UploadEvaluationFileProps;
+
+        if (evalData.collectionId) {
+          const authData = await authEvalDataset({
+            datasetId: evalData.collectionId,
+            per: WritePermissionVal,
+            req,
+            authToken: true,
+            authApiKey: true
+          });
+          return {
+            teamId: authData.teamId,
+            uid: authData.tmbId
+          };
+        } else {
+          const authData = await authEvaluationDatasetCreate({
+            req,
+            authToken: true,
+            authApiKey: true
+          });
+          return {
+            teamId: authData.teamId,
+            uid: authData.tmbId
+          };
+        }
       }
       return Promise.reject('bucketName is empty');
     })();

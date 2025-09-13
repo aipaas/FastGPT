@@ -15,6 +15,7 @@ export async function register() {
         { initVectorStore },
         { initRootUser },
         { startMongoWatch },
+        { initEvaluationWorkers },
         { startCron },
         { startTrainingQueue },
         { preLoadWorker },
@@ -28,6 +29,7 @@ export async function register() {
         import('@fastgpt/service/common/vectorDB/controller'),
         import('@/service/mongo'),
         import('@/service/common/system/volumnMongoWatch'),
+        import('@fastgpt/service/core/evaluation'),
         import('@/service/common/system/cron'),
         import('@/service/core/dataset/training/utils'),
         import('@fastgpt/service/worker/preload'),
@@ -50,6 +52,13 @@ export async function register() {
       await Promise.all([getInitConfig(), initVectorStore(), initRootUser(), loadSystemModels()]);
 
       try {
+        const { initBuiltinMetrics } = await import('@/service/common/system');
+        await initBuiltinMetrics();
+      } catch (error) {
+        console.error('Init metrics error:', error);
+      }
+
+      try {
         await preLoadWorker();
       } catch (error) {
         console.error('Preload worker error', error);
@@ -60,6 +69,7 @@ export async function register() {
       initAppTemplateTypes();
       // getSystemPlugins(true);
       startMongoWatch();
+      initEvaluationWorkers();
       startCron();
       startTrainingQueue(true);
 

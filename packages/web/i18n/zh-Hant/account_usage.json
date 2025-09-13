@@ -13,6 +13,11 @@
   "duration_seconds": "時長（秒）",
   "embedding_index": "索引生成",
   "evaluation": "應用評測",
+  "evaluation_dataset_data_quality_assessment": "評測數據品質評估",
+  "evaluation_dataset_data_synthesis": "評測數據合成",
+  "evaluation_dataset_data_qa_synthesis": "評測數據問答合成",
+  "evaluation_quality_assessment": "評估品質評估",
+  "evaluation_debug_metric": "調試維度",
   "every_day": "天",
   "every_month": "月",
   "every_week": "每週",
@@ -28,6 +33,7 @@
   "llm_paragraph": "模型分段",
   "mcp": "MCP 調用",
   "member": "成員",
+  "metrics_execute": "指標執行",
   "member_name": "成員名",
   "module_name": "模組名",
   "month": "月",
@@ -51,5 +57,6 @@
   "total_usage": "總消耗",
   "usage_detail": "使用詳細資訊",
   "user_type": "類型",
-  "wecom": "企業微信"
+  "wecom": "企業微信",
+  "evaluation_summary_generation": "評估-總結生成"
 }

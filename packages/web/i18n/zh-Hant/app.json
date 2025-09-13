@@ -69,7 +69,7 @@
   "cron.every_week": "每週執行",
   "cron.interval": "間隔執行",
   "dataset": "知識庫",
-  "dataset_search_tool_description": "呼叫「語意搜尋」和「全文搜尋」功能，從「知識庫」中尋找可能與問題相關的參考內容。優先呼叫這個工具來協助回答使用者的問題。",
+  "dataset_search_tool_description": "調用語義檢索、全文檢索、數據庫檢索能力，從“知識庫”中查找可能與問題相關的參考內容。",
   "day": "日",
   "deleted": "應用已刪除",
   "document_quote": "文件引用",
@@ -346,5 +346,10 @@
   "workflow.user_file_input": "檔案連結",
   "workflow.user_file_input_desc": "使用者上傳的檔案和圖片連結",
   "workflow.user_select": "使用者選擇",
-  "workflow.user_select_tip": "這個模組可以設定多個選項，供對話時選擇。不同選項可以導向不同的工作流程支線"
+  "workflow.user_select_tip": "這個模組可以設定多個選項，供對話時選擇。不同選項可以導向不同的工作流程支線",
+  "files_cascader_no_knowledge_base": "不加入知識庫",
+  "files_cascader_select_knowledge_base": "請選擇知識庫",
+  "files_cascader_select_first": "請先選擇知識庫",
+  "files_cascader_dataset_empty": "該知識庫資料集為空",
+  "select_join_location": "選擇加入位置"
 }

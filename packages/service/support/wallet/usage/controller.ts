@@ -236,20 +236,25 @@ export const pushLLMTrainingUsage = async ({
   return { totalPoints };
 };
 
+// Evaluation usage index mapping for better maintenance
+export const evaluationUsageIndexMap = {
+  target: 0, // 生成应用回答
+  metric: 1, // 指标执行评测
+  summary: 2 // 生成总结报告
+} as const;
+
 export const createEvaluationUsage = async ({
   teamId,
   tmbId,
   appName,
-  model,
   session
 }: {
   teamId: string;
   tmbId: string;
   appName: string;
-  model: string;
   session?: ClientSession;
 }) => {
-  const [{ _id: usageId }] = await MongoUsage.create(
+  const [{ _id }] = await MongoUsage.create(
     [
       {
         teamId,
@@ -264,11 +269,16 @@ export const createEvaluationUsage = async ({
             count: 0
           },
           {
-            moduleName: i18nT('account_usage:answer_accuracy'),
+            moduleName: i18nT('account_usage:metrics_execute'),
             amount: 0,
             inputTokens: 0,
-            outputTokens: 0,
-            model
+            outputTokens: 0
+          },
+          {
+            moduleName: i18nT('account_usage:evaluation_summary_generation'),
+            amount: 0,
+            inputTokens: 0,
+            outputTokens: 0
           }
         ]
       }
@@ -276,5 +286,134 @@ export const createEvaluationUsage = async ({
     { session, ordered: true }
   );
 
-  return { usageId };
+  return { billId: String(_id) };
+};
+
+export const createEvalDatasetDataQualityUsage = async ({
+  teamId,
+  tmbId,
+  model,
+  usages
+}: {
+  teamId: string;
+  tmbId: string;
+  model: string;
+  usages: Array<{
+    promptTokens?: number;
+    completionTokens?: number;
+  }>;
+}) => {
+  let totalPoints = 0;
+  const usageList = usages.map((usage) => {
+    const { totalPoints: points } = formatModelChars2Points({
+      model,
+      modelType: ModelTypeEnum.llm,
+      inputTokens: usage.promptTokens || 0,
+      outputTokens: usage.completionTokens || 0
+    });
+    totalPoints += points;
+
+    return {
+      moduleName: i18nT('account_usage:evaluation_quality_assessment'),
+      amount: points,
+      model,
+      inputTokens: usage.promptTokens || 0,
+      outputTokens: usage.completionTokens || 0
+    };
+  });
+
+  await createUsage({
+    teamId,
+    tmbId,
+    appName: i18nT('account_usage:evaluation_dataset_data_quality_assessment'),
+    totalPoints,
+    source: UsageSourceEnum.evaluation,
+    list: usageList
+  });
+
+  return { totalPoints };
+};
+
+export const createEvalDatasetDataSynthesisUsage = async ({
+  teamId,
+  tmbId,
+  model,
+  usages
+}: {
+  teamId: string;
+  tmbId: string;
+  model: string;
+  usages: Array<{
+    promptTokens?: number;
+    completionTokens?: number;
+  }>;
+}) => {
+  let totalPoints = 0;
+  const usageList = usages.map((usage) => {
+    const { totalPoints: points } = formatModelChars2Points({
+      model,
+      modelType: ModelTypeEnum.llm,
+      inputTokens: usage.promptTokens || 0,
+      outputTokens: usage.completionTokens || 0
+    });
+    totalPoints += points;
+
+    return {
+      moduleName: i18nT('account_usage:evaluation_dataset_data_qa_synthesis'),
+      amount: points,
+      model,
+      inputTokens: usage.promptTokens || 0,
+      outputTokens: usage.completionTokens || 0
+    };
+  });
+
+  await createUsage({
+    teamId,
+    tmbId,
+    appName: i18nT('account_usage:evaluation_dataset_data_synthesis'),
+    totalPoints,
+    source: UsageSourceEnum.evaluation,
+    list: usageList
+  });
+
+  return { totalPoints };
+};
+
+export const createEvaluationMetricDebugUsage = async ({
+  teamId,
+  tmbId,
+  metricName,
+  totalPoints,
+  model,
+  inputTokens,
+  outputTokens
+}: {
+  teamId: string;
+  tmbId: string;
+  metricName: string;
+  totalPoints: number;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+}) => {
+  if (totalPoints <= 0) {
+    return;
+  }
+
+  await createUsage({
+    teamId,
+    tmbId,
+    appName: i18nT('account_usage:evaluation_debug_metric'),
+    totalPoints,
+    source: UsageSourceEnum.evaluation,
+    list: [
+      {
+        moduleName: `Debug: ${metricName}`,
+        amount: totalPoints,
+        model,
+        inputTokens,
+        outputTokens
+      }
+    ]
+  });
 };

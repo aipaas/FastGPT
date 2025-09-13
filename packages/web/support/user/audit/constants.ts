@@ -442,6 +442,258 @@ export const auditLogMap = {
       datasetType: string;
     }
   },
+  //Evaluation Dataset
+  [AuditEventEnum.CREATE_EVALUATION_DATASET_COLLECTION]: {
+    content: i18nT('account_team:log_create_evaluation_dataset_collection'),
+    typeLabel: i18nT('account_team:create_evaluation_dataset_collection'),
+    params: {} as {
+      name?: string;
+      collectionName: string;
+    }
+  },
+  [AuditEventEnum.UPDATE_EVALUATION_DATASET_COLLECTION]: {
+    content: i18nT('account_team:log_update_evaluation_dataset_collection'),
+    typeLabel: i18nT('account_team:update_evaluation_dataset_collection'),
+    params: {} as {
+      name?: string;
+      collectionName: string;
+    }
+  },
+  [AuditEventEnum.DELETE_EVALUATION_DATASET_COLLECTION]: {
+    content: i18nT('account_team:log_delete_evaluation_dataset_collection'),
+    typeLabel: i18nT('account_team:delete_evaluation_dataset_collection'),
+    params: {} as {
+      name?: string;
+      collectionName: string;
+    }
+  },
+  [AuditEventEnum.CREATE_EVALUATION_DATASET_DATA]: {
+    content: i18nT('account_team:log_create_evaluation_dataset_data'),
+    typeLabel: i18nT('account_team:create_evaluation_dataset_data'),
+    params: {} as {
+      name?: string;
+      collectionName: string;
+    }
+  },
+  [AuditEventEnum.UPDATE_EVALUATION_DATASET_DATA]: {
+    content: i18nT('account_team:log_update_evaluation_dataset_data'),
+    typeLabel: i18nT('account_team:update_evaluation_dataset_data'),
+    params: {} as {
+      name?: string;
+      collectionName: string;
+    }
+  },
+  [AuditEventEnum.DELETE_EVALUATION_DATASET_DATA]: {
+    content: i18nT('account_team:log_delete_evaluation_dataset_data'),
+    typeLabel: i18nT('account_team:delete_evaluation_dataset_data'),
+    params: {} as {
+      name?: string;
+      collectionName: string;
+    }
+  },
+  [AuditEventEnum.QUALITY_ASSESSMENT_EVALUATION_DATA]: {
+    content: i18nT('account_team:log_quality_assessment_evaluation_data'),
+    typeLabel: i18nT('account_team:quality_assessment_evaluation_data'),
+    params: {} as {
+      name?: string;
+      collectionName: string;
+    }
+  },
+  [AuditEventEnum.SMART_GENERATE_EVALUATION_DATA]: {
+    content: i18nT('account_team:log_smart_generate_evaluation_data'),
+    typeLabel: i18nT('account_team:smart_generate_evaluation_data'),
+    params: {} as {
+      name?: string;
+      collectionName: string;
+    }
+  },
+  [AuditEventEnum.DELETE_EVALUATION_DATASET_TASK]: {
+    content: i18nT('account_team:log_delete_evaluation_dataset_task'),
+    typeLabel: i18nT('account_team:delete_evaluation_dataset_task'),
+    params: {} as {
+      name?: string;
+      collectionName: string;
+    }
+  },
+  [AuditEventEnum.RETRY_EVALUATION_DATASET_TASK]: {
+    content: i18nT('account_team:log_retry_evaluation_dataset_task'),
+    typeLabel: i18nT('account_team:retry_evaluation_dataset_task'),
+    params: {} as {
+      name?: string;
+      collectionName: string;
+    }
+  },
+  [AuditEventEnum.IMPORT_EVALUATION_DATASET_DATA]: {
+    content: i18nT('account_team:log_import_evaluation_dataset_data'),
+    typeLabel: i18nT('account_team:import_evaluation_dataset_data'),
+    params: {} as {
+      name?: string;
+      collectionName: string;
+      recordCount?: number;
+    }
+  },
+  //Evaluation Task
+  [AuditEventEnum.CREATE_EVALUATION_TASK]: {
+    content: i18nT('account_team:log_create_evaluation_task'),
+    typeLabel: i18nT('account_team:create_evaluation_task'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+      datasetId: string;
+      targetType: string;
+      evaluatorCount: number;
+    }
+  },
+  [AuditEventEnum.UPDATE_EVALUATION_TASK]: {
+    content: i18nT('account_team:log_update_evaluation_task'),
+    typeLabel: i18nT('account_team:update_evaluation_task'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+    }
+  },
+  [AuditEventEnum.DELETE_EVALUATION_TASK]: {
+    content: i18nT('account_team:log_delete_evaluation_task'),
+    typeLabel: i18nT('account_team:delete_evaluation_task'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+    }
+  },
+  [AuditEventEnum.START_EVALUATION_TASK]: {
+    content: i18nT('account_team:log_start_evaluation_task'),
+    typeLabel: i18nT('account_team:start_evaluation_task'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+    }
+  },
+  [AuditEventEnum.STOP_EVALUATION_TASK]: {
+    content: i18nT('account_team:log_stop_evaluation_task'),
+    typeLabel: i18nT('account_team:stop_evaluation_task'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+    }
+  },
+  [AuditEventEnum.RETRY_EVALUATION_TASK]: {
+    content: i18nT('account_team:log_retry_evaluation_task'),
+    typeLabel: i18nT('account_team:retry_evaluation_task'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+      retryCount: number;
+    }
+  },
+  //Evaluation Task Item
+  [AuditEventEnum.DELETE_EVALUATION_TASK_ITEM]: {
+    content: i18nT('account_team:log_delete_evaluation_task_item'),
+    typeLabel: i18nT('account_team:delete_evaluation_task_item'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+      itemId: string;
+    }
+  },
+  [AuditEventEnum.UPDATE_EVALUATION_TASK_ITEM]: {
+    content: i18nT('account_team:log_update_evaluation_task_item'),
+    typeLabel: i18nT('account_team:update_evaluation_task_item'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+      itemId: string;
+    }
+  },
+  [AuditEventEnum.RETRY_EVALUATION_TASK_ITEM]: {
+    content: i18nT('account_team:log_retry_evaluation_task_item'),
+    typeLabel: i18nT('account_team:retry_evaluation_task_item'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+      itemId: string;
+    }
+  },
+  [AuditEventEnum.EXPORT_EVALUATION_TASK_ITEMS]: {
+    content: i18nT('account_team:log_export_evaluation_task_items'),
+    typeLabel: i18nT('account_team:export_evaluation_task_items'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+      format: string;
+      itemCount: number;
+    }
+  },
+  //Evaluation Metric
+  [AuditEventEnum.CREATE_EVALUATION_METRIC]: {
+    content: i18nT('account_team:log_create_evaluation_metric'),
+    typeLabel: i18nT('account_team:create_evaluation_metric'),
+    params: {} as {
+      name?: string;
+      metricName: string;
+    }
+  },
+  [AuditEventEnum.DELETE_EVALUATION_METRIC]: {
+    content: i18nT('account_team:log_delete_evaluation_metric'),
+    typeLabel: i18nT('account_team:delete_evaluation_metric'),
+    params: {} as {
+      name?: string;
+      metricName: string;
+    }
+  },
+  [AuditEventEnum.UPDATE_EVALUATION_METRIC]: {
+    content: i18nT('account_team:log_update_evaluation_metric'),
+    typeLabel: i18nT('account_team:update_evaluation_metric'),
+    params: {} as {
+      name?: string;
+      metricName: string;
+    }
+  },
+  [AuditEventEnum.DEBUG_EVALUATION_METRIC]: {
+    content: i18nT('account_team:log_debug_evaluation_metric'),
+    typeLabel: i18nT('account_team:debug_evaluation_metric'),
+    params: {} as {
+      name?: string;
+      metricName: string;
+   }
+  },
+  //Evaluation Task DataItem Aggregation
+  [AuditEventEnum.DELETE_EVALUATION_TASK_DATA_ITEM]: {
+    content: i18nT('account_team:log_delete_evaluation_task_data_item'),
+    typeLabel: i18nT('account_team:delete_evaluation_task_data_item'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+      dataItemId: string;
+    }
+  },
+  [AuditEventEnum.UPDATE_EVALUATION_TASK_DATA_ITEM]: {
+    content: i18nT('account_team:log_update_evaluation_task_data_item'),
+    typeLabel: i18nT('account_team:update_evaluation_task_data_item'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+      dataItemId: string;
+    }
+  },
+  [AuditEventEnum.RETRY_EVALUATION_TASK_DATA_ITEM]: {
+    content: i18nT('account_team:log_retry_evaluation_task_data_item'),
+    typeLabel: i18nT('account_team:retry_evaluation_task_data_item'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+      dataItemId: string;
+    }
+  },
+  [AuditEventEnum.EXPORT_EVALUATION_TASK_DATA_ITEMS]: {
+    content: i18nT('account_team:log_export_evaluation_task_data_items'),
+    typeLabel: i18nT('account_team:export_evaluation_task_data_items'),
+    params: {} as {
+      name?: string;
+      taskName: string;
+      format: string;
+      itemCount: number;
+    }
+  },
   //SearchTest
   [AuditEventEnum.SEARCH_TEST]: {
     content: i18nT('account_team:log_search_test'),
@@ -498,5 +750,15 @@ export const auditLogMap = {
     content: i18nT('account_team:log_delete_api_key'),
     typeLabel: i18nT('account_team:delete_api_key'),
     params: {} as { name?: string; keyName: string }
+  },
+  [AuditEventEnum.GENERATE_EVALUATION_SUMMARY]: {
+    content: i18nT('account_team:log_generate_evaluation_summary'),
+    typeLabel: i18nT('account_team:generate_evaluation_summary'),
+    params: {} as { name?: string; evalName: string; metricName: string }
+  },
+  [AuditEventEnum.UPDATE_EVALUATION_SUMMARY_CONFIG]: {
+    content: i18nT('account_team:log_update_evaluation_summary_config'),
+    typeLabel: i18nT('account_team:update_evaluation_summary_config'),
+    params: {} as { name?: string; evalName: string }
   }
 } as const;

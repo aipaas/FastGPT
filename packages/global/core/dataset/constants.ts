@@ -9,20 +9,40 @@ export enum DatasetTypeEnum {
 
   apiDataset = 'apiDataset',
   feishu = 'feishu',
-  yuque = 'yuque'
+  yuque = 'yuque',
+  database = 'database'
 }
+interface DatasetTypeConfig {
+  icon: string;
+  avatar: string;
+  label: any;
+  collectionLabel: string;
+  courseUrl?: string;
+  formConfig?: {
+    vectorModel?: {
+      isHidden?: boolean;
+      tip?: string;
+    };
+    agentModel?: {
+      isHidden?: boolean;
+      tip?: string;
+    };
+    vlmModel?: {
+      isHidden?: boolean;
+      tip?: string;
+    };
+  };
+}
+/* ------------ database_dataset -------------- */
+export enum DatabaseType {
+  mysql = 'mysql',
+  postgresql = 'postgresql',
+  mssql = 'mssql',
+  sqlite = 'sqlite'
+};
 
 // @ts-ignore
-export const ApiDatasetTypeMap: Record<
-  `${DatasetTypeEnum}`,
-  {
-    icon: string;
-    avatar: string;
-    label: any;
-    collectionLabel: string;
-    courseUrl?: string;
-  }
-> = {
+export const ApiDatasetTypeMap: Record<`${DatasetTypeEnum}`, DatasetTypeConfig> = {
   [DatasetTypeEnum.apiDataset]: {
     icon: 'core/dataset/externalDatasetOutline',
     avatar: 'core/dataset/externalDatasetColor',
@@ -45,16 +65,7 @@ export const ApiDatasetTypeMap: Record<
     courseUrl: '/docs/introduction/guide/knowledge_base/yuque_dataset/'
   }
 };
-export const DatasetTypeMap: Record<
-  `${DatasetTypeEnum}`,
-  {
-    icon: string;
-    avatar: string;
-    label: any;
-    collectionLabel: string;
-    courseUrl?: string;
-  }
-> = {
+export const DatasetTypeMap: Record<`${DatasetTypeEnum}`, DatasetTypeConfig> = {
   ...ApiDatasetTypeMap,
   [DatasetTypeEnum.folder]: {
     icon: 'common/folderFill',
@@ -74,6 +85,25 @@ export const DatasetTypeMap: Record<
     label: i18nT('dataset:website_dataset'),
     collectionLabel: i18nT('common:Website'),
     courseUrl: '/docs/introduction/guide/knowledge_base/websync/'
+  },
+  [DatasetTypeEnum.database]: {
+    icon: 'core/dataset/databaseOutline',
+    avatar: 'core/dataset/databaseColor',
+    label: i18nT('dataset:enterprise_database'),
+    collectionLabel: i18nT('dataset:enterprise_database'),
+    courseUrl: '/docs/introduction/guide/knowledge_base/enterprise_database/',
+    formConfig: {
+      agentModel: {
+        isHidden: true
+      },
+      vlmModel: {
+        isHidden: true
+      },
+      vectorModel: {
+        isHidden: false,
+        tip: i18nT('dataset:enterprise_database_embedding_model_tip')
+      }
+    }
   },
   [DatasetTypeEnum.externalFile]: {
     icon: 'core/dataset/externalDatasetOutline',
@@ -113,7 +143,8 @@ export enum DatasetCollectionTypeEnum {
   link = 'link', // one link
   externalFile = 'externalFile',
   apiFile = 'apiFile',
-  images = 'images'
+  images = 'images',
+  table = 'table' // database table
 }
 export const DatasetCollectionTypeMap = {
   [DatasetCollectionTypeEnum.folder]: {
@@ -136,6 +167,9 @@ export const DatasetCollectionTypeMap = {
   },
   [DatasetCollectionTypeEnum.images]: {
     name: i18nT('dataset:core.dataset.Image collection')
+  },
+  [DatasetCollectionTypeEnum.table]: {
+    name: i18nT('common:core.dataset.table')
   }
 };
 
@@ -163,7 +197,7 @@ export enum DatasetCollectionDataProcessModeEnum {
 
   backup = 'backup',
   template = 'template',
-
+  databaseSchema = 'databaseSchema',
   auto = 'auto' // abandon
 }
 export const DatasetCollectionDataProcessModeMap = {
@@ -191,6 +225,10 @@ export const DatasetCollectionDataProcessModeMap = {
   [DatasetCollectionDataProcessModeEnum.template]: {
     label: i18nT('dataset:template_mode'),
     tooltip: i18nT('dataset:template_mode')
+  },
+  [DatasetCollectionDataProcessModeEnum.databaseSchema]: {
+    label: i18nT('common:core.dataset.training.databaseSchema mode'),
+    tooltip: i18nT('common:core.dataset.import.databaseSchema Tip')
   }
 };
 
@@ -225,7 +263,8 @@ export enum ImportDataSourceEnum {
   externalFile = 'externalFile',
   apiDataset = 'apiDataset',
   reTraining = 'reTraining',
-  imageDataset = 'imageDataset'
+  imageDataset = 'imageDataset',
+  database = 'database'
 }
 
 export enum TrainingModeEnum {
@@ -234,14 +273,16 @@ export enum TrainingModeEnum {
   qa = 'qa',
   auto = 'auto',
   image = 'image',
-  imageParse = 'imageParse'
+  imageParse = 'imageParse',
+  databaseSchema = 'databaseSchema'
 }
 
 /* ------------ search -------------- */
 export enum DatasetSearchModeEnum {
   embedding = 'embedding',
   fullTextRecall = 'fullTextRecall',
-  mixedRecall = 'mixedRecall'
+  mixedRecall = 'mixedRecall',
+  database = 'database'
 }
 
 export const DatasetSearchModeMap = {
@@ -262,6 +303,12 @@ export const DatasetSearchModeMap = {
     title: i18nT('common:core.dataset.search.mode.mixedRecall'),
     desc: i18nT('common:core.dataset.search.mode.mixedRecall desc'),
     value: DatasetSearchModeEnum.mixedRecall
+  },
+  [DatasetSearchModeEnum.database]: {
+    icon: 'core/dataset/database',
+    title: i18nT('common:core.dataset.search.mode.database'),
+    desc: i18nT('common:core.dataset.search.mode.database desc'),
+    value: DatasetSearchModeEnum.database
   }
 };
 

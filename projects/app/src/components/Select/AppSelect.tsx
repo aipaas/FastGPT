@@ -12,7 +12,19 @@ import { getMyApps } from '@/web/core/app/api';
 import { AppTypeEnum } from '@fastgpt/global/core/app/constants';
 import Avatar from '@fastgpt/web/components/common/Avatar';
 
-const AppSelect = ({ value, onSelect }: { value: string; onSelect: (id: string) => void }) => {
+const AppSelect = ({
+  value,
+  onSelect,
+  placeholder,
+  h,
+  bg
+}: {
+  value: string;
+  onSelect: (id: string) => void;
+  placeholder?: string;
+  h?: string | number;
+  bg?: string;
+}) => {
   const [currentApp, setCurrentApp] = useState<GetResourceListItemResponse | null>(null);
   const { t } = useTranslation();
 
@@ -43,15 +55,15 @@ const AppSelect = ({ value, onSelect }: { value: string; onSelect: (id: string) 
       Trigger={
         <Button
           w={'full'}
-          bg={'myGray.50'}
+          bg={bg || 'myGray.50'}
           variant={'whitePrimaryOutline'}
-          size={'lg'}
+          size={h ? undefined : 'lg'}
           fontSize={'sm'}
           px={3}
           outline={'none'}
           rightIcon={<MyIcon name={'core/chat/chevronDown'} w="1rem" color={'myGray.500'} />}
           iconSpacing={2}
-          h={'auto'}
+          h={h || 'auto'}
           _active={{
             transform: 'none'
           }}
@@ -62,7 +74,7 @@ const AppSelect = ({ value, onSelect }: { value: string; onSelect: (id: string) 
         >
           <Flex w={'100%'} alignItems={'center'} gap={2}>
             {currentApp && <Avatar src={currentApp.avatar} w={5} borderRadius={'sm'} />}
-            {currentApp?.name || t('common:Select_App')}
+            {currentApp?.name || placeholder || t('common:Select_App')}
           </Flex>
         </Button>
       }

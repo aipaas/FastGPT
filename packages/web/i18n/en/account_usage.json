@@ -13,6 +13,11 @@
   "duration_seconds": "Duration (seconds)",
   "embedding_index": "Embedding",
   "evaluation": "Application Review",
+  "evaluation_dataset_data_quality_assessment": "Evaluation Dataset Data Quality Assessment",
+  "evaluation_dataset_data_synthesis": "Evaluation Dataset Synthesis",
+  "evaluation_dataset_data_qa_synthesis": "Evaluation Q&A Synthesis",
+  "evaluation_quality_assessment": "Quality Assessment",
+  "evaluation_debug_metric": "Debug Metric",
   "every_day": "Day",
   "every_month": "Moon",
   "every_week": "weekly",
@@ -28,6 +33,7 @@
   "llm_paragraph": "LLM segmentation",
   "mcp": "MCP call",
   "member": "member",
+  "metrics_execute": "Metrics Execute",
   "member_name": "Member name",
   "module_name": "module name",
   "month": "moon",
@@ -51,5 +57,6 @@
   "total_usage": "Total Usage",
   "usage_detail": "Details",
   "user_type": "type",
-  "wecom": "WeCom"
+  "wecom": "WeCom",
+  "evaluation_summary_generation": "Evaluation - Summary Generation"
 }
