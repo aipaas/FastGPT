@@ -610,10 +610,16 @@ const evaluationItemProcessor = async (job: Job<EvaluationItemJobData>) => {
           targetCallParams: evalItem.dataItem.targetCallParams
         });
 
-        // Save target output as checkpoint
+        // Save target output as checkpoint with chat information
         await MongoEvalItem.updateOne(
           { _id: new Types.ObjectId(evalItemId) },
-          { $set: { targetOutput: targetOutput } }
+          {
+            $set: {
+              targetOutput: targetOutput,
+              chatId: targetOutput.chatId,
+              aiChatItemDataId: targetOutput.aiChatItemDataId
+            }
+          }
         );
 
         // Record usage from target call
@@ -699,6 +705,8 @@ const evaluationItemProcessor = async (job: Job<EvaluationItemJobData>) => {
         $set: {
           targetOutput: targetOutput,
           evaluatorOutput: evaluatorOutput,
+          chatId: targetOutput.chatId,
+          aiChatItemDataId: targetOutput.aiChatItemDataId,
           status: EvaluationStatusEnum.completed,
           finishTime: new Date()
         }

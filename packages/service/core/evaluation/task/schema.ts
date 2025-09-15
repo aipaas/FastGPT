@@ -216,6 +216,18 @@ export const EvaluationItemSchema = new Schema({
   },
   target: EvaluationTargetSchema,
   evaluator: EvaluationEvaluatorSchema, // Single evaluator configuration
+  // Chat information for linking to detailed responses
+  chatId: {
+    type: String,
+    required: false, // Will be set after target execution
+    index: true
+  },
+  aiChatItemDataId: {
+    type: String,
+    required: false, // Will be set after target execution
+    index: true,
+    description: 'AI reply dataId for viewing complete workflow response'
+  },
   // Execution results
   targetOutput: {
     type: Schema.Types.Mixed,
@@ -244,6 +256,7 @@ EvaluationItemSchema.index({ evalId: 1, status: 1, createTime: -1 }); // Status 
 EvaluationItemSchema.index({ status: 1, retry: 1 }); // Queue processing with retry logic
 EvaluationItemSchema.index({ evalId: 1, 'dataItem._id': 1 }); // DataItem aggregation queries
 EvaluationItemSchema.index({ evalId: 1, status: 1, retry: 1 }); // Retry operations optimization
+EvaluationItemSchema.index({ chatId: 1, aiChatItemDataId: 1 }); // Chat records linking
 
 // Optimized text search for content filtering (removed evalId for flexibility)
 EvaluationItemSchema.index({
