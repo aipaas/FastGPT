@@ -78,6 +78,7 @@ export function buildEvalDataConfig(evaluators: EvaluatorSchema[]): {
     metricName: evaluator.metric.name,
     weight: weights[index],
     calculateType: CalculateMethodEnum.mean,
+    score: 0,
     summary: '',
     summaryStatus: SummaryStatusEnum.pending,
     errorReason: ''

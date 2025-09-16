@@ -32,9 +32,13 @@ export interface SummaryConfig {
   metricName: string; // Metric name for display
   weight: number;
   calculateType: CalculateMethodEnum;
+  score: number; // Calculated score based on successful items with scores
   summary: string;
   summaryStatus: SummaryStatusEnum;
   errorReason: string;
+  completedItemCount: number; // Count of completed evaluation items
+  overThresholdItemCount: number; // Count of items with scores above threshold
+  thresholdPassRate: number; // Percentage of items that passed the threshold (0-100)
 }
 
 // Evaluator configuration type
@@ -69,6 +73,7 @@ export type EvaluationSchemaType = {
   finishTime?: Date;
   errorMessage?: string;
   statistics?: EvaluationStatistics;
+  aggregateScore?: number; // Weighted aggregate score calculated from multiple metrics
 };
 
 /**

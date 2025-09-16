@@ -177,6 +177,10 @@ export const EvaluationTaskSchema = new Schema({
         enum: CaculateMethodValues,
         required: true
       },
+      score: {
+        type: Number,
+        default: 0
+      },
       summary: {
         type: String,
         default: ''
@@ -190,9 +194,26 @@ export const EvaluationTaskSchema = new Schema({
         type: String,
         default: ''
       },
+      completedItemCount: {
+        type: Number,
+        default: 0
+      },
+      overThresholdItemCount: {
+        type: Number,
+        default: 0
+      },
+      thresholdPassRate: {
+        type: Number,
+        default: 0
+      },
       _id: false
     }
-  ]
+  ],
+  // Weighted aggregate score calculated from multiple metrics
+  aggregateScore: {
+    type: Number,
+    default: 0
+  }
 });
 
 // Optimized indexes for EvaluationTaskSchema

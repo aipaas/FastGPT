@@ -47,8 +47,8 @@ export class EvaluationTaskService {
 
     // Apply default configuration to evaluators (weights, thresholds, etc.)
     const { evaluators: evaluatorsWithDefaultConfig, summaryConfigs } = buildEvalDataConfig(
-          evaluationParams.evaluators
-        );
+      evaluationParams.evaluators
+    );
     const createAndStart = async (session: ClientSession) => {
       // Create evaluation within transaction
       const evaluation = await MongoEvaluation.create(
@@ -928,6 +928,13 @@ export class EvaluationTaskService {
 
     const retriedCount = await mongoSessionRun(retryItems);
 
+    // Note: Score recalculation will be triggered when items complete in finishEvaluationTask
+    if (retriedCount > 0) {
+      addLog.debug(
+        `[Evaluation] Queued ${retriedCount} failed items for retry, scores will be recalculated when items complete: ${evalId}`
+      );
+    }
+
     return retriedCount;
   }
 
@@ -1233,6 +1240,21 @@ export class EvaluationTaskService {
 
     const deletedCount = await mongoSessionRun(deleteOperation);
 
+    // Trigger score recalculation after deleting test data
+    if (deletedCount > 0) {
+      try {
+        const { EvaluationSummaryService } = await import('../summary');
+        await EvaluationSummaryService.calculateAndSaveMetricScores(evalId);
+        addLog.debug(
+          `[Evaluation] Triggered score recalculation after deleting ${deletedCount} items for dataItem: ${dataItemId}`
+        );
+      } catch (error) {
+        addLog.warn(`[Evaluation] Failed to recalculate scores after deletion: ${evalId}`, {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+
     return {
       deletedCount
     };
@@ -1312,6 +1334,14 @@ export class EvaluationTaskService {
     };
 
     const retriedCount = await mongoSessionRun(retryOperation);
+
+    // Trigger score recalculation after retrying data (when items complete)
+    // Note: The score recalculation will be triggered when items finish in finishEvaluationTask
+    if (retriedCount > 0) {
+      addLog.debug(
+        `[Evaluation] Queued ${retriedCount} items for retry, scores will be recalculated when items complete: ${evalId}`
+      );
+    }
 
     return {
       retriedCount

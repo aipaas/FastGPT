@@ -39,46 +39,86 @@ export class EvaluationSummaryService {
       errorReason?: string;
       completedItemCount: number;
       overThresholdItemCount: number;
+      thresholdPassRate: number;
     }>;
     aggregateScore: number;
   }> {
-    // Query evaluation task
     const evaluation = await MongoEvaluation.findById(evalId).lean();
+    if (!evaluation) throw new Error(EvaluationErrEnum.evalTaskNotFound);
 
-    if (!evaluation) {
-      throw new Error(EvaluationErrEnum.evalTaskNotFound);
-    }
-
-    // Real-time calculation of metricScore and aggregateScore
-    const calculatedData = await this.calculateMetricScores(evaluation);
-
-    // Build return data, merge calculation results and existing configurations
+    // Build return data using pre-calculated values from MongoDB summaryConfigs
     const data = evaluation.evaluators.map((evaluator, index) => {
       const metricId = evaluator.metric._id.toString();
-      const calculatedMetric = calculatedData.metricsData.find(
-        (item) => item.metricId === metricId
-      );
       const summaryConfig = evaluation.summaryConfigs[index];
 
       return {
         metricId: metricId,
         metricName: evaluator.metric.name,
-        metricScore: calculatedMetric?.metricScore || 0,
+        metricScore: summaryConfig.score || 0, // Use pre-calculated score from MongoDB
         summary: summaryConfig.summary,
         summaryStatus: summaryConfig.summaryStatus.toString(),
         errorReason: summaryConfig.errorReason,
-        completedItemCount: calculatedMetric?.totalCount || 0,
-        overThresholdItemCount: calculatedMetric?.aboveThresholdCount || 0
+        completedItemCount: summaryConfig.completedItemCount || 0, // Use pre-calculated count from MongoDB
+        overThresholdItemCount: summaryConfig.overThresholdItemCount || 0, // Use pre-calculated count from MongoDB
+        thresholdPassRate: summaryConfig.thresholdPassRate || 0 // Use pre-calculated pass rate from MongoDB
       };
     });
 
+    // Use stored aggregateScore if available, otherwise calculate from pre-calculated scores
+    let aggregateScore = evaluation.aggregateScore;
+
+    if (aggregateScore === undefined || aggregateScore === null) {
+      let totalWeightedScore = 0;
+      let totalWeight = 0;
+
+      evaluation.summaryConfigs.forEach((summaryConfig) => {
+        const score = summaryConfig.score || 0;
+        const weight = summaryConfig.weight || 0;
+        totalWeightedScore += score * weight;
+        totalWeight += weight;
+      });
+
+      aggregateScore =
+        totalWeight > 0 ? Math.round((totalWeightedScore / totalWeight) * 100) / 100 : 0;
+    }
+
     return {
       data,
-      aggregateScore: calculatedData.aggregateScore
+      aggregateScore
     };
   }
 
-  // Real-time calculation of metricScore and aggregateScore
+  // Calculate and save metric scores to MongoDB summaryConfigs
+  static async calculateAndSaveMetricScores(evalId: string): Promise<void> {
+    try {
+      const evaluation = await MongoEvaluation.findById(evalId).lean();
+      if (!evaluation) throw new Error(EvaluationErrEnum.evalTaskNotFound);
+
+      // Use the existing calculateMetricScores method to get calculated scores
+      const calculatedData = await this.calculateMetricScores(evaluation);
+
+      // Update the calculated scores to database
+      await this.updateSummaryConfigsScores(
+        evalId,
+        calculatedData.metricsData,
+        calculatedData.aggregateScore
+      );
+
+      addLog.info('[Evaluation] Metric scores calculated and saved to MongoDB', {
+        evalId,
+        metricsCount: calculatedData.metricsData.length,
+        aggregateScore: calculatedData.aggregateScore
+      });
+    } catch (error) {
+      addLog.error('[Evaluation] Failed to calculate and save metric scores', {
+        evalId,
+        error
+      });
+      // Don't throw error to avoid affecting main flow
+    }
+  }
+
+  // Real-time calculation of metricScore and aggregateScore (pure calculation, no database updates)
   private static async calculateMetricScores(evaluation: EvaluationSchemaType): Promise<{
     metricsData: Array<{
       metricId: string;
@@ -216,7 +256,7 @@ export class EvaluationSummaryService {
       const aggregateScore =
         totalWeight > 0 ? Math.round((totalWeightedScore / totalWeight) * 100) / 100 : 0;
 
-      addLog.info('[Evaluation] Real-time calculation completed', {
+      addLog.info('[Evaluation] Metric calculation completed', {
         evalId: evaluation._id.toString(),
         metricsCount: metricsData.length,
         aggregateScore
@@ -254,6 +294,69 @@ export class EvaluationSummaryService {
     }
   }
 
+  // Update summaryConfigs scores and aggregateScore together based on calculated metric scores
+  private static async updateSummaryConfigsScores(
+    evalId: string,
+    metricsData: Array<{
+      metricId: string;
+      metricName: string;
+      metricScore: number;
+      weight: number;
+      thresholdValue: number;
+      aboveThresholdCount: number;
+      thresholdPassRate: number;
+      totalCount: number;
+    }>,
+    aggregateScore: number
+  ): Promise<void> {
+    try {
+      // Build update fields for each summaryConfig score
+      const updateFields: Record<string, any> = {};
+
+      const evaluation = await MongoEvaluation.findById(evalId).lean();
+      if (!evaluation) return;
+
+      // Build update fields using pre-calculated data
+      evaluation.summaryConfigs.forEach((summaryConfig, index) => {
+        const metricData = metricsData.find((m) => m.metricId === summaryConfig.metricId);
+        if (metricData) {
+          updateFields[`summaryConfigs.${index}.score`] = metricData.metricScore;
+          updateFields[`summaryConfigs.${index}.completedItemCount`] = metricData.totalCount;
+          updateFields[`summaryConfigs.${index}.overThresholdItemCount`] =
+            metricData.aboveThresholdCount;
+          updateFields[`summaryConfigs.${index}.thresholdPassRate`] = metricData.thresholdPassRate;
+        }
+      });
+
+      // Use pre-calculated aggregateScore
+      updateFields['aggregateScore'] = aggregateScore;
+
+      await MongoEvaluation.updateOne({ _id: evalId }, { $set: updateFields });
+
+      addLog.info('[Evaluation] Updated summaryConfigs scores, counts and aggregateScore', {
+        evalId,
+        updatedFieldsCount: Object.keys(updateFields).length,
+        aggregateScore,
+        scores: metricsData.map((m) => ({
+          metricId: m.metricId,
+          score: m.metricScore,
+          completedItemCount: m.totalCount,
+          overThresholdItemCount: m.aboveThresholdCount,
+          thresholdPassRate: m.thresholdPassRate
+        }))
+      });
+    } catch (error) {
+      addLog.error(
+        '[Evaluation] Failed to update summaryConfigs scores, counts and aggregateScore',
+        {
+          evalId,
+          error
+        }
+      );
+      // Don't throw error to avoid affecting main calculation flow
+    }
+  }
+
   // Update evaluation summary configuration (threshold, weight, calculation method)
   static async updateEvaluationSummaryConfig(
     evalId: string,
@@ -276,79 +379,93 @@ export class EvaluationSummaryService {
       }
     }
 
-    // Update configuration based on existing evaluators (threshold, weight, calculation method)
-    const configMap = new Map(
-      metricsConfig.map((m) => [
-        m.metricId,
-        { thresholdValue: m.thresholdValue, weight: m.weight, calculateType: m.calculateType }
-      ])
-    );
+    // Update configuration and recalculate
+    await this.updateConfigurationAndRecalculate(evalId, evaluation, metricsConfig);
+  }
 
-    // Update corresponding configuration in evaluators array and summaryConfigs
-    const updatedEvaluators = (evaluation.evaluators || []).map((evaluator: any) => {
-      const metricId = evaluator.metric._id.toString();
-      const config = configMap.get(metricId);
-      if (config) {
-        return {
-          ...evaluator,
-          thresholdValue: config.thresholdValue
-        };
-      }
-      return evaluator;
+  // Simplified method to update configuration and recalculate everything
+  private static async updateConfigurationAndRecalculate(
+    evalId: string,
+    evaluation: EvaluationSchemaType,
+    metricsConfig: Array<{
+      metricId: string;
+      thresholdValue: number;
+      weight?: number;
+      calculateType?: CalculateMethodEnum;
+    }>
+  ): Promise<void> {
+    const configMap = new Map(metricsConfig.map((m) => [m.metricId, m]));
+
+    // Update database configuration
+    await this.updateDatabaseConfig(evalId, evaluation, metricsConfig, configMap);
+
+    // Update eval_items thresholds
+    await this.updateEvalItemThresholds(evalId, metricsConfig);
+
+    // Get updated evaluation and recalculate everything
+    const updatedEvaluation = await MongoEvaluation.findById(evalId).lean();
+    if (updatedEvaluation) {
+      addLog.info('[Evaluation] Configuration updated, recalculating all metrics', { evalId });
+      const calculatedData = await this.calculateMetricScores(updatedEvaluation);
+      await this.updateSummaryConfigsScores(
+        evalId,
+        calculatedData.metricsData,
+        calculatedData.aggregateScore
+      );
+    }
+  }
+
+  // Update database configuration (evaluators and summaryConfigs)
+  private static async updateDatabaseConfig(
+    evalId: string,
+    evaluation: EvaluationSchemaType,
+    metricsConfig: Array<{
+      metricId: string;
+      thresholdValue: number;
+      weight?: number;
+      calculateType?: CalculateMethodEnum;
+    }>,
+    configMap: Map<string, any>
+  ): Promise<void> {
+    // Update evaluators
+    const updatedEvaluators = evaluation.evaluators.map((evaluator: any) => {
+      const config = configMap.get(evaluator.metric._id.toString());
+      return config ? { ...evaluator, thresholdValue: config.thresholdValue } : evaluator;
     });
 
-    // Update summaryConfigs array
+    // Update summaryConfigs
     const updatedSummaryConfigs = evaluation.summaryConfigs.map(
       (summaryConfig: any, index: number) => {
-        const evaluator = evaluation.evaluators[index];
-        const metricId = evaluator.metric._id.toString();
+        const metricId = evaluation.evaluators[index].metric._id.toString();
         const config = configMap.get(metricId);
 
         if (config) {
           return {
             ...summaryConfig,
-            ...(config.weight !== undefined ? { weight: config.weight } : {}),
-            ...(config.calculateType !== undefined ? { calculateType: config.calculateType } : {})
+            ...(config.weight !== undefined && { weight: config.weight }),
+            ...(config.calculateType !== undefined && { calculateType: config.calculateType })
           };
         }
         return summaryConfig;
       }
     );
 
-    // Update evaluation configuration
     await MongoEvaluation.updateOne(
       { _id: evalId },
-      {
-        $set: {
-          evaluators: updatedEvaluators,
-          summaryConfigs: updatedSummaryConfigs
-        }
-      }
+      { $set: { evaluators: updatedEvaluators, summaryConfigs: updatedSummaryConfigs } }
     );
+  }
 
-    // Update threshold values in all related eval_items
-    const thresholdUpdates = metricsConfig.filter((config) => config.thresholdValue !== undefined);
-    if (thresholdUpdates.length > 0) {
-      for (const config of thresholdUpdates) {
-        const updateResult = await MongoEvalItem.updateMany(
-          {
-            evalId: evalId,
-            'evaluator.metric._id': config.metricId
-          },
-          {
-            $set: {
-              'evaluator.thresholdValue': config.thresholdValue
-            }
-          }
-        );
-
-        addLog.info('[Evaluation] Updated threshold in eval_items', {
-          evalId,
-          metricId: config.metricId,
-          newThreshold: config.thresholdValue,
-          updatedCount: updateResult.modifiedCount
-        });
-      }
+  // Update thresholds in eval_items
+  private static async updateEvalItemThresholds(
+    evalId: string,
+    metricsConfig: Array<{ metricId: string; thresholdValue: number }>
+  ): Promise<void> {
+    for (const config of metricsConfig) {
+      await MongoEvalItem.updateMany(
+        { evalId, 'evaluator.metric._id': config.metricId },
+        { $set: { 'evaluator.thresholdValue': config.thresholdValue } }
+      );
     }
   }
 
@@ -363,12 +480,8 @@ export class EvaluationSummaryService {
       weight: number;
     }>;
   }> {
-    // Query evaluation task
     const evaluation = await MongoEvaluation.findById(evalId).lean();
-
-    if (!evaluation) {
-      throw new Error(EvaluationErrEnum.evalTaskNotFound);
-    }
+    if (!evaluation) throw new Error(EvaluationErrEnum.evalTaskNotFound);
 
     // Get calculation type from first summary config (since all metrics use the same type)
     const firstSummaryConfig = evaluation.summaryConfigs[0];
@@ -430,6 +543,13 @@ export class EvaluationSummaryService {
           evalId,
           metricIds,
           totalMetrics: metricIds.length
+        }
+      );
+
+      addLog.info(
+        '[EvaluationSummary] Updated metric scores and counts before generating summaries',
+        {
+          evalId
         }
       );
 
