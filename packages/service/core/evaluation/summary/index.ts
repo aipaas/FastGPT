@@ -25,6 +25,8 @@ import { addAuditLog } from '../../../support/user/audit/util';
 import { AuditEventEnum } from '@fastgpt/global/support/user/audit/constants';
 import { concatUsage, evaluationUsageIndexMap } from '../../../support/wallet/usage/controller';
 import { createMergedEvaluationUsage } from '../utils/usage';
+import { formatModelChars2Points } from '../../../support/wallet/usage/utils';
+import { ModelTypeEnum } from '@fastgpt/global/core/ai/model';
 import { EvaluationErrEnum } from '@fastgpt/global/common/error/code/evaluation';
 import { recalculateAllEvaluationItemAggregateScores } from './util/aggregateScoreCalculator';
 import { addSummaryTaskToQueue } from './queue';
@@ -1162,7 +1164,7 @@ export class EvaluationSummaryService {
         body: {
           model: llmModel,
           messages: requestMessages,
-          temperature: 0.3,
+          temperature: 1e-7,
           max_tokens: 1000,
           stream: false
         },
@@ -1216,14 +1218,13 @@ export class EvaluationSummaryService {
       const outputTokens = usage?.completion_tokens || 0;
       const totalTokens = inputTokens + outputTokens;
 
-      // Convert tokens to points
-      const totalPoints = modelData
-        ? Math.ceil(
-            (inputTokens * (modelData.inputPrice || 0) +
-              outputTokens * (modelData.outputPrice || 0)) /
-              1000
-          )
-        : 0;
+      // Convert tokens to points using standard utility function
+      const { totalPoints } = formatModelChars2Points({
+        model: llmModel || modelData?.model || '',
+        inputTokens,
+        outputTokens,
+        modelType: (modelData?.type as `${ModelTypeEnum}`) || ModelTypeEnum.llm
+      });
 
       // Use unified evaluation usage recording
       await createMergedEvaluationUsage({
