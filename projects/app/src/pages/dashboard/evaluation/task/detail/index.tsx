@@ -907,34 +907,6 @@ const Detail = ({ taskId, currentTab }: Props) => {
                               onClick={handleRefresh}
                             />
                           </MyTooltip>
-                          <MyTooltip label={t('dashboard_evaluation:edit_action')} offset={[0, 15]}>
-                            <IconButton
-                              aria-label="edit"
-                              size={'mdSquare'}
-                              variant={'whitePrimary'}
-                              icon={<MyIcon name={'edit'} w={4} />}
-                              onClick={handleEdit}
-                            />
-                          </MyTooltip>
-                          <PopoverConfirm
-                            content={t('dashboard_evaluation:confirm_delete_data_in_task')}
-                            type="delete"
-                            confirmText={t('dashboard_evaluation:delete_action')}
-                            onConfirm={handleDelete}
-                            Trigger={
-                              <MyTooltip
-                                label={t('dashboard_evaluation:delete_action')}
-                                offset={[0, 15]}
-                              >
-                                <IconButton
-                                  aria-label="delete"
-                                  size={'mdSquare'}
-                                  variant={'whiteDanger'}
-                                  icon={<MyIcon name={'delete'} w={4} />}
-                                />
-                              </MyTooltip>
-                            }
-                          />
                         </>
                       )}
 
@@ -947,29 +919,47 @@ const Detail = ({ taskId, currentTab }: Props) => {
                           >
                             {t('dashboard_evaluation:view_full_response')}
                           </Button>
-                          <PopoverConfirm
-                            content={t('dashboard_evaluation:confirm_delete_data_in_task')}
-                            type="delete"
-                            confirmText={t('dashboard_evaluation:delete_action')}
-                            onConfirm={handleDelete}
-                            Trigger={
-                              <MyTooltip
-                                label={t('dashboard_evaluation:delete_action')}
-                                offset={[0, 15]}
-                              >
-                                <IconButton
-                                  aria-label="delete"
-                                  size={'mdSquare'}
-                                  variant={'whiteDanger'}
-                                  icon={<MyIcon name={'delete'} w={4} />}
-                                />
-                              </MyTooltip>
-                            }
-                          />
                         </>
                       )}
 
-                      {/* 排队中或评测中状态不显示任何按钮 */}
+                      {/* 对于非排队/评测状态，显示编辑和删除按钮 */}
+                      {selectedItem &&
+                        selectedItem.status !== EvaluationStatusEnum.queuing &&
+                        selectedItem.status !== EvaluationStatusEnum.evaluating && (
+                          <>
+                            <MyTooltip
+                              label={t('dashboard_evaluation:edit_action')}
+                              offset={[0, 15]}
+                            >
+                              <IconButton
+                                aria-label="edit"
+                                size={'mdSquare'}
+                                variant={'whitePrimary'}
+                                icon={<MyIcon name={'edit'} w={4} />}
+                                onClick={handleEdit}
+                              />
+                            </MyTooltip>
+                            <PopoverConfirm
+                              content={t('dashboard_evaluation:confirm_delete_data_in_task')}
+                              type="delete"
+                              confirmText={t('dashboard_evaluation:delete_action')}
+                              onConfirm={handleDelete}
+                              Trigger={
+                                <MyTooltip
+                                  label={t('dashboard_evaluation:delete_action')}
+                                  offset={[0, 15]}
+                                >
+                                  <IconButton
+                                    aria-label="delete"
+                                    size={'mdSquare'}
+                                    variant={'whiteDanger'}
+                                    icon={<MyIcon name={'delete'} w={4} />}
+                                  />
+                                </MyTooltip>
+                              }
+                            />
+                          </>
+                        )}
                     </>
                   )}
                 </Flex>
