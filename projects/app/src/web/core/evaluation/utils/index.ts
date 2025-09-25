@@ -1,4 +1,5 @@
 import { i18nT } from '@fastgpt/web/i18n/utils';
+import { EvaluationErrEnum } from '@fastgpt/global/common/error/code/evaluation';
 
 // 内置维度信息映射表
 export const BUILTIN_DIMENSION_MAP = {
@@ -89,4 +90,32 @@ export const getBuiltinDimensionIdFromName = (dimensionName: string): string => 
 export const formatScoreToPercentage = (score: number): number => {
   const result = (score * 100).toFixed(2);
   return parseFloat(result);
+};
+
+/**
+ * Error message translation utility for evaluation errors
+ * Simple mapping of evaluation error codes to i18n keys
+ */
+
+// Map of evaluation error codes to i18n keys (for reference)
+export const EVALUATION_ERROR_KEY_MAP: Record<string, string> = {
+  [EvaluationErrEnum.evalTaskSystemError]: 'evaluation:task_system_error',
+  [EvaluationErrEnum.evalManuallyStopped]: 'evaluation:manually_stopped',
+  [EvaluationErrEnum.evalEvaluatorExecutionErrors]: 'evaluation:evaluator_execution_errors',
+  [EvaluationErrEnum.evalTargetExecutionError]: 'evaluation:target_execution_error',
+  [EvaluationErrEnum.evalTargetConfigInvalid]: 'evaluation:target_config_invalid',
+  [EvaluationErrEnum.evalEvaluatorsConfigInvalid]: 'evaluation:evaluators_config_invalid',
+  [EvaluationErrEnum.evalTaskNotFound]: 'evaluation:task_not_found',
+  [EvaluationErrEnum.evalItemNotFound]: 'evaluation:item_not_found',
+  [EvaluationErrEnum.evalDatasetLoadFailed]: 'evaluation:dataset_load_failed'
+  // Add more mappings as needed
+};
+
+/**
+ * Get i18n key for evaluation error code
+ * @param errorCode - Error code from backend
+ * @returns i18n key or original error code if no mapping found
+ */
+export const getEvaluationErrorI18nKey = (errorCode: string): string => {
+  return EVALUATION_ERROR_KEY_MAP[errorCode] || errorCode;
 };

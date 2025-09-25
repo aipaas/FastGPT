@@ -582,8 +582,7 @@ export class EvaluationTaskService {
     const canStart =
       evaluation.status === EvaluationStatusEnum.queuing ||
       evaluation.status === EvaluationStatusEnum.completed ||
-      (evaluation.status === EvaluationStatusEnum.error &&
-        evaluation.errorMessage === 'Manually stopped');
+      evaluation.status === EvaluationStatusEnum.error;
 
     if (!canStart) {
       throw new Error(EvaluationErrEnum.evalInvalidStateTransition);
@@ -642,7 +641,7 @@ export class EvaluationTaskService {
         {
           $set: {
             finishTime: new Date(),
-            errorMessage: 'Manually stopped'
+            errorMessage: EvaluationErrEnum.evalManuallyStopped
           }
         },
         { session }
@@ -655,7 +654,7 @@ export class EvaluationTaskService {
         },
         {
           $set: {
-            errorMessage: 'Manually stopped',
+            errorMessage: EvaluationErrEnum.evalManuallyStopped,
             finishTime: new Date()
           }
         },
@@ -1162,7 +1161,7 @@ export class EvaluationTaskService {
         'UserInput',
         'ExpectedOutput',
         'ActualOutput',
-        ...sortedMetricNames, // Dynamic metric columns
+        ...sortedMetricNames,
         'Status',
         'ErrorMessage',
         'FinishTime'

@@ -20,7 +20,8 @@ export const evalDatasetDataQualityQueue = getQueue<EvalDatasetDataQualityData>(
       backoff: {
         type: 'exponential',
         delay: 1000
-      }
+      },
+      removeOnFail: false
     }
   }
 );
@@ -31,9 +32,7 @@ export const getEvalDatasetDataQualityWorker = (
   processor: Processor<EvalDatasetDataQualityData>
 ) => {
   return getWorker<EvalDatasetDataQualityData>(QueueNames.evalDatasetDataQuality, processor, {
-    removeOnFail: {
-      count: 1000 // Keep last 1000 failed jobs
-    },
+    maxStalledCount: global.systemEnv?.evalConfig?.maxStalledCount || 3,
     concurrency: concurrency
   });
 };

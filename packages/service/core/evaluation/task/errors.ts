@@ -90,10 +90,23 @@ export interface EvaluationErrorContext {
 export const createEvaluationError = (
   error: any,
   stage: string,
-  context?: EvaluationErrorContext
+  context?: EvaluationErrorContext,
+  forceRetry?: boolean
 ): Error => {
   const errorStr = error?.message || error?.code || String(error);
-  const errorMessage = getErrText(error);
+
+  // Store error code instead of translated message for frontend translation
+  let errorMessage: string;
+  if (
+    typeof error === 'string' &&
+    Object.values(EvaluationErrEnum).includes(error as EvaluationErrEnum)
+  ) {
+    // Store the error code directly for frontend translation
+    errorMessage = error;
+  } else {
+    // For non-EvaluationErrEnum errors, still use getErrText for system errors
+    errorMessage = getErrText(error);
+  }
 
   // Build detailed error context
   const logContext = {
@@ -102,6 +115,12 @@ export const createEvaluationError = (
     originalError: error,
     ...context
   };
+
+  // Force retry for specific stages
+  if (forceRetry) {
+    addLog.warn(`[Evaluation] Force retryable error in stage ${stage}`, logContext);
+    return new EvaluationRetryableError(errorMessage, stage);
+  }
 
   // Unrecoverable error types
   if (

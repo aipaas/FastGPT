@@ -54,7 +54,8 @@ import { getEvaluationItemList } from '@/web/core/evaluation/task';
 import {
   BUILTIN_DIMENSION_MAP,
   getBuiltinDimensionInfo,
-  formatScoreToPercentage
+  formatScoreToPercentage,
+  getEvaluationErrorI18nKey
 } from '@/web/core/evaluation/utils';
 import {
   EvaluationStatusEnum,
@@ -395,18 +396,24 @@ const Detail = ({ taskId, currentTab }: Props) => {
     if (selectedItem.evaluatorOutputs && selectedItem.evaluatorOutputs.length > 0) {
       selectedItem.evaluatorOutputs.forEach((output) => {
         if (output.status === MetricResultStatusEnum.Failed && output.data?.reason) {
-          messages.push(output.data.reason);
+          // Try to translate error message from evaluator output
+          const i18nKey = getEvaluationErrorI18nKey(output.data.reason);
+          const translatedMessage = t(i18nKey, output.data.reason); // Use original as fallback
+          messages.push(translatedMessage);
         }
       });
     }
 
     // 如果没有找到任何 reason，则取外层的 errorMessage 作为兜底
     if (messages.length === 0 && selectedItem.errorMessage) {
-      messages.push(selectedItem.errorMessage);
+      // Try to translate the main error message
+      const i18nKey = getEvaluationErrorI18nKey(selectedItem.errorMessage);
+      const translatedMessage = t(i18nKey, selectedItem.errorMessage); // Use original as fallback
+      messages.push(translatedMessage);
     }
 
     return messages;
-  }, [selectedItem]);
+  }, [selectedItem, t]);
 
   const { register, handleSubmit, reset, setValue } = useForm();
 

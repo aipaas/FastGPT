@@ -22,7 +22,8 @@ export const evalDatasetDataSynthesizeQueue = getQueue<EvalDatasetDataSynthesize
       backoff: {
         type: 'exponential',
         delay: 1000
-      }
+      },
+      removeOnFail: false
     }
   }
 );
@@ -33,9 +34,7 @@ export const getEvalDatasetDataSynthesizeWorker = (
   processor: Processor<EvalDatasetDataSynthesizeData>
 ) => {
   return getWorker<EvalDatasetDataSynthesizeData>(QueueNames.evalDatasetDataSynthesize, processor, {
-    removeOnFail: {
-      count: 1000 // Keep last 1000 failed jobs for debugging
-    },
+    maxStalledCount: global.systemEnv?.evalConfig?.maxStalledCount || 3,
     concurrency: concurrency
   });
 };
