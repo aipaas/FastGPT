@@ -190,7 +190,7 @@ export const TaskPageContextProvider = ({
   children: ReactNode;
   taskId: string;
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
 
   // 基础状态
@@ -337,8 +337,8 @@ export const TaskPageContextProvider = ({
   );
 
   const { runAsync: runExportItems } = useRequest2(
-    (params: { evalId: string; format?: string }) =>
-      getExportEvaluationItems(params.evalId, params.format),
+    (params: { evalId: string; format?: string; locale?: string }) =>
+      getExportEvaluationItems(params.evalId, params.format, params.locale),
     {
       manual: true,
       errorToast: t('dashboard_evaluation:export_failed')
@@ -463,7 +463,8 @@ export const TaskPageContextProvider = ({
       try {
         const blob = await runExportItems({
           evalId: taskId,
-          format: format || 'csv'
+          format: format || 'csv',
+          locale: i18n.language || 'en'
         });
 
         // 创建下载链接
@@ -486,7 +487,7 @@ export const TaskPageContextProvider = ({
         throw error;
       }
     },
-    [taskId, taskDetail?.name, t, toast, runExportItems]
+    [taskId, taskDetail?.name, t, toast, runExportItems, i18n.language]
   );
 
   // 生成总结报告（为指定的 metricIds）
