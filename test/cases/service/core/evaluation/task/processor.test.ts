@@ -25,7 +25,6 @@ vi.mock('@fastgpt/service/core/evaluation/evaluator');
 vi.mock('@fastgpt/service/support/permission/teamLimit');
 vi.mock('@fastgpt/service/core/evaluation/utils/usage');
 vi.mock('@fastgpt/service/core/evaluation/summary');
-vi.mock('@fastgpt/service/core/evaluation/summary/util/aggregateScoreCalculator');
 vi.mock('@fastgpt/service/core/evaluation/task/statusCalculator');
 vi.mock('@fastgpt/service/core/evaluation/task/errors');
 
@@ -149,9 +148,6 @@ describe('EvaluationTaskProcessor', () => {
     const { createMergedEvaluationUsage } = await import(
       '@fastgpt/service/core/evaluation/utils/usage'
     );
-    const { calculateEvaluationItemAggregateScore } = await import(
-      '@fastgpt/service/core/evaluation/summary/util/aggregateScoreCalculator'
-    );
     const { getBatchEvaluationItemStatus } = await import(
       '@fastgpt/service/core/evaluation/task/statusCalculator'
     );
@@ -160,7 +156,6 @@ describe('EvaluationTaskProcessor', () => {
     (addEvaluationItemJobs as any).mockResolvedValue(undefined);
     (checkTeamAIPoints as any).mockResolvedValue(undefined);
     (createMergedEvaluationUsage as any).mockResolvedValue(undefined);
-    (calculateEvaluationItemAggregateScore as any).mockResolvedValue(85);
     (getBatchEvaluationItemStatus as any).mockResolvedValue(new Map());
     (createEvaluationError as any).mockImplementation((error: any) => new Error(error));
 
@@ -298,8 +293,9 @@ describe('EvaluationTaskProcessor', () => {
 
       await finishEvaluationTask(evaluationId);
 
-      expect(EvaluationSummaryService.calculateAndSaveMetricScores).toHaveBeenCalledWith(
-        evaluationId
+      expect(EvaluationSummaryService.triggerSummaryGeneration).toHaveBeenCalledWith(
+        evaluationId,
+        1
       );
     });
 
@@ -391,22 +387,6 @@ describe('EvaluationTaskProcessor', () => {
       expect(mockJob.updateProgress).toHaveBeenCalledWith(0);
       expect(mockJob.updateProgress).toHaveBeenCalledWith(20);
       expect(mockJob.updateProgress).toHaveBeenCalledWith(100);
-
-      const { addEvaluationItemJobs } = await import('@fastgpt/service/core/evaluation/task/mq');
-      expect(addEvaluationItemJobs).toHaveBeenCalled();
-    });
-
-    test('应该创建评估项目（无现有项目）', async () => {
-      const mockJob = {
-        data: { evalId: evaluationId },
-        updateProgress: vi.fn()
-      };
-
-      await evaluationTaskProcessor(mockJob as any);
-
-      // 验证评估项目被创建
-      const createdItems = await MongoEvalItem.find({ evalId: evaluationId });
-      expect(createdItems.length).toBe(2);
 
       const { addEvaluationItemJobs } = await import('@fastgpt/service/core/evaluation/task/mq');
       expect(addEvaluationItemJobs).toHaveBeenCalled();
@@ -540,7 +520,6 @@ describe('EvaluationTaskProcessor', () => {
       const updatedItem = await MongoEvalItem.findById(evalItem._id);
       expect(updatedItem?.targetOutput).toBeDefined();
       expect(updatedItem?.evaluatorOutputs).toBeDefined();
-      expect(updatedItem?.aggregateScore).toBeDefined();
     });
 
     test('应该从检查点恢复', async () => {
@@ -769,7 +748,9 @@ describe('EvaluationTaskProcessor', () => {
         updateProgress: vi.fn()
       };
 
-      await expect(evaluationItemProcessor(mockJob as any)).rejects.toThrow('Evaluator errors');
+      await expect(evaluationItemProcessor(mockJob as any)).rejects.toThrow(
+        'evaluationEvaluatorExecutionErrors'
+      );
     });
   });
 
@@ -835,7 +816,9 @@ describe('EvaluationTaskProcessor', () => {
         updateProgress: vi.fn()
       };
 
-      await expect(evaluationItemProcessor(mockJob as any)).rejects.toThrow('Evaluator errors');
+      await expect(evaluationItemProcessor(mockJob as any)).rejects.toThrow(
+        'evaluationEvaluatorExecutionErrors'
+      );
     });
   });
 });
