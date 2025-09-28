@@ -11,7 +11,7 @@ async function handler(
   req: ApiRequestProps<{}, ExportEvaluationItemsRequest>,
   res: ApiResponseType<any>
 ) {
-  const { evalId, format = 'json' } = req.query;
+  const { evalId, format = 'json', locale = 'en' } = req.query;
 
   if (!evalId) {
     throw new Error(EvaluationErrEnum.evalIdRequired);
@@ -30,7 +30,8 @@ async function handler(
   const { results, total } = await EvaluationTaskService.exportEvaluationResults(
     evalId,
     teamId,
-    format as 'json' | 'csv'
+    format as 'json' | 'csv',
+    locale
   );
 
   if (format === 'csv') {

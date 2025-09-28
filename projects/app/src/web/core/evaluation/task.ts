@@ -124,12 +124,16 @@ export const postRetryFailedEvaluationItems = (data: RetryFailedEvaluationItemsR
  * 导出评估项
  * @param evalId - 评估任务ID
  * @param format - 导出格式
+ * @param locale - 语言环境，用于翻译内置指标名称
  * @returns 导出文件
  */
-export const getExportEvaluationItems = (evalId: string, format?: string) => {
+export const getExportEvaluationItems = (evalId: string, format?: string, locale?: string) => {
   const params = new URLSearchParams({ evalId });
   if (format) {
     params.append('format', format);
+  }
+  if (locale) {
+    params.append('locale', locale);
   }
 
   return fetch(`/api/core/evaluation/task/item/export?${params.toString()}`, {
