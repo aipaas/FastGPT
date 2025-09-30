@@ -1,7 +1,7 @@
 import { addLog } from '../../../common/system/log';
 import { EvaluationStatusEnum } from '@fastgpt/global/core/evaluation/constants';
 import { evaluationTaskQueue, evaluationItemQueue } from './mq';
-import { MongoEvaluation, MongoEvalItem } from './schema';
+import { MongoEvalItem } from './schema';
 import { Types } from 'mongoose';
 
 /**
@@ -51,6 +51,16 @@ export async function getEvaluationTaskStatus(evalId: string): Promise<Evaluatio
 
 /**
  * Calculate evaluation task status from evaluation item jobs
+ *
+ * Logic:
+ * 1. relatedItemJobs.length > 0:
+ *    1.1. 存在job为运行中, 则当前任务状态为evaluating
+ *    1.2. 所有job都为完成状态:
+ *         1.2.1. 所有job都是complete, 当前任务状态为complete
+ *         1.2.2. 有任何job是error, 当前任务状态为error
+ * 2. relatedItemJobs.length === 0:
+ *    2.1. 存在MongoEvalItem, 任务状态为queuing
+ *    2.2. 不存在MongoEvalItem, 任务状态为error
  */
 async function getEvaluationTaskStatusFromItems(evalId: string): Promise<EvaluationStatusEnum> {
   try {
@@ -64,45 +74,57 @@ async function getEvaluationTaskStatusFromItems(evalId: string): Promise<Evaluat
 
     const relatedItemJobs = itemJobs.filter((job) => job.data.evalId === evalId);
 
-    // If no evaluation item jobs, check if task is completed via finishTime
-    if (relatedItemJobs.length === 0) {
-      try {
-        const evaluation = await MongoEvaluation.findById(new Types.ObjectId(evalId), {
-          finishTime: 1
-        });
-        if (evaluation?.finishTime) {
+    // Case 1: relatedItemJobs.length > 0
+    if (relatedItemJobs.length > 0) {
+      // Get job states
+      const itemJobStates = await Promise.all(
+        relatedItemJobs.map(async (job) => await job.getState())
+      );
+
+      // 1.1. 存在job为运行中 (active, waiting, delayed), 则当前任务状态为evaluating
+      if (
+        itemJobStates.some((state) =>
+          ['active', 'waiting', 'delayed', 'prioritized'].includes(state)
+        )
+      ) {
+        return EvaluationStatusEnum.evaluating;
+      }
+
+      // 1.2. 所有job都为完成状态 (completed, failed)
+      const allCompleted = itemJobStates.every((state) => ['completed', 'failed'].includes(state));
+      if (allCompleted) {
+        // 1.2.2. 有任何job是error, 当前任务状态为error
+        if (itemJobStates.includes('failed')) {
+          return EvaluationStatusEnum.error;
+        }
+        // 1.2.1. 所有job都是complete, 当前任务状态为complete
+        if (itemJobStates.every((state) => state === 'completed')) {
           return EvaluationStatusEnum.completed;
         }
-        return EvaluationStatusEnum.queuing;
-      } catch {
-        return EvaluationStatusEnum.queuing;
       }
-    }
 
-    // Get job states
-    const itemJobStates = await Promise.all(
-      relatedItemJobs.map(async (job) => await job.getState())
-    );
-
-    // Return status by priority: evaluating > error > queuing > completed
-    if (itemJobStates.includes('active')) {
+      // Fallback for unexpected job states
       return EvaluationStatusEnum.evaluating;
     }
 
-    if (itemJobStates.includes('failed')) {
-      return EvaluationStatusEnum.error;
-    }
+    // Case 2: relatedItemJobs.length === 0
+    try {
+      // Check if MongoEvalItem exists for this evaluation
+      const evalItemCount = await MongoEvalItem.countDocuments({
+        evalId: new Types.ObjectId(evalId)
+      });
 
-    if (itemJobStates.some((state) => ['waiting', 'delayed', 'prioritized'].includes(state))) {
+      if (evalItemCount > 0) {
+        // 2.1. 存在MongoEvalItem, 任务状态为queuing (等待job创建)
+        return EvaluationStatusEnum.queuing;
+      } else {
+        // 2.2. 不存在MongoEvalItem, 可能是任务还在初始化阶段, 返回queuing
+        return EvaluationStatusEnum.queuing;
+      }
+    } catch (dbError) {
+      // Database error, return queuing for backward compatibility
       return EvaluationStatusEnum.queuing;
     }
-
-    if (itemJobStates.includes('completed')) {
-      return EvaluationStatusEnum.completed;
-    }
-
-    // Default status
-    return EvaluationStatusEnum.completed;
   } catch (error) {
     return EvaluationStatusEnum.error;
   }
@@ -110,6 +132,18 @@ async function getEvaluationTaskStatusFromItems(evalId: string): Promise<Evaluat
 
 /**
  * Calculate real-time status of evaluation item
+ *
+ * Logic:
+ * 1. relatedJobs.length > 0:
+ *    1.1. 存在job为运行中 (active), 则状态为evaluating
+ *    1.2. 存在job为代处理 (waiting, delayed等)， 则状态为queuing
+ *    1.2. 所有job都为完成状态:
+ *         1.2.1. 有任何job是failed, 状态为error
+ *         1.2.2. 所有job都是completed, 状态为completed
+ * 2. relatedJobs.length === 0:
+ *    2.1. 不存在MongoEvalItem, 状态为error (数据异常)
+ *    2.2. 存在MongoEvalItem且有finishTime, 根据errorMessage判断completed/error
+ *    2.3. 存在MongoEvalItem但无finishTime, 状态为queuing (等待job创建)
  */
 export async function getEvaluationItemStatus(evalItemId: string): Promise<EvaluationStatusEnum> {
   try {
@@ -123,45 +157,60 @@ export async function getEvaluationItemStatus(evalItemId: string): Promise<Evalu
 
     const relatedJobs = itemJobs.filter((job) => job.data.evalItemId === evalItemId);
 
-    // If no related jobs, check database status to determine if queuing or completed
-    if (relatedJobs.length === 0) {
-      try {
-        const evalItem = await MongoEvalItem.findById(new Types.ObjectId(evalItemId), {
-          finishTime: 1,
-          errorMessage: 1
-        });
-        if (evalItem?.finishTime) {
-          return evalItem.errorMessage
-            ? EvaluationStatusEnum.error
-            : EvaluationStatusEnum.completed;
-        }
-        return EvaluationStatusEnum.queuing;
-      } catch {
+    // Case 1: relatedJobs.length > 0
+    if (relatedJobs.length > 0) {
+      const jobStates = await Promise.all(relatedJobs.map(async (job) => await job.getState()));
+
+      // 1.1. 存在job为运行中 (active), 则状态为evaluating
+      if (jobStates.includes('active')) {
+        return EvaluationStatusEnum.evaluating;
+      }
+
+      // 1.2. 存在job为代处理 (waiting, delayed等)， 则状态为queuing
+      if (jobStates.some((state) => ['waiting', 'delayed', 'prioritized'].includes(state))) {
         return EvaluationStatusEnum.queuing;
       }
-    }
 
-    // Get job states，取最高优先级状态
-    const jobStates = await Promise.all(relatedJobs.map(async (job) => await job.getState()));
+      // 1.3. 所有job都为完成状态 (completed, failed)
+      const allFinished = jobStates.every((state) => ['completed', 'failed'].includes(state));
+      if (allFinished) {
+        // 1.3.1. 有任何job是failed, 状态为error
+        if (jobStates.includes('failed')) {
+          return EvaluationStatusEnum.error;
+        }
+        // 1.3.2. 所有job都是completed, 状态为completed
+        if (jobStates.every((state) => state === 'completed')) {
+          return EvaluationStatusEnum.completed;
+        }
+      }
 
-    // Return status by priority: evaluating > error > queuing > completed
-    if (jobStates.includes('active')) {
-      return EvaluationStatusEnum.evaluating;
-    }
-
-    if (jobStates.includes('failed')) {
-      return EvaluationStatusEnum.error;
-    }
-
-    if (jobStates.some((state) => ['waiting', 'delayed', 'prioritized'].includes(state))) {
+      // Fallback for unexpected job states
       return EvaluationStatusEnum.queuing;
     }
 
-    if (jobStates.includes('completed')) {
-      return EvaluationStatusEnum.completed;
-    }
+    // Case 2: relatedJobs.length === 0
+    try {
+      const evalItem = await MongoEvalItem.findById(new Types.ObjectId(evalItemId), {
+        finishTime: 1,
+        errorMessage: 1
+      });
 
-    return EvaluationStatusEnum.queuing;
+      // 2.1. 不存在MongoEvalItem, 状态为error (数据异常)
+      if (!evalItem) {
+        return EvaluationStatusEnum.error;
+      }
+
+      // 2.2. 存在MongoEvalItem且有finishTime, 根据errorMessage判断completed/error
+      if (evalItem.finishTime) {
+        return evalItem.errorMessage ? EvaluationStatusEnum.error : EvaluationStatusEnum.completed;
+      }
+
+      // 2.3. 存在MongoEvalItem但无finishTime, 状态为queuing (等待job创建)
+      return EvaluationStatusEnum.queuing;
+    } catch (dbError) {
+      // Database error, return error
+      return EvaluationStatusEnum.error;
+    }
   } catch (error) {
     return EvaluationStatusEnum.error;
   }
@@ -169,6 +218,18 @@ export async function getEvaluationItemStatus(evalItemId: string): Promise<Evalu
 
 /**
  * Batch calculate evaluation item status for performance optimization
+ *
+ * Logic (consistent with getEvaluationItemStatus):
+ * 1. relatedJobs.length > 0:
+ *    1.1. 存在job为运行中 (active), 则状态为evaluating
+ *    1.2. 存在job为代处理 (waiting, delayed等)， 则状态为queuing
+ *    1.3. 所有job都为完成状态:
+ *         1.3.1. 有任何job是failed, 状态为error
+ *         1.3.2. 所有job都是completed, 状态为completed
+ * 2. relatedJobs.length === 0:
+ *    2.1. 不存在MongoEvalItem, 状态为error (数据异常)
+ *    2.2. 存在MongoEvalItem且有finishTime, 根据errorMessage判断completed/error
+ *    2.3. 存在MongoEvalItem但无finishTime, 状态为queuing (等待job创建)
  */
 export async function getBatchEvaluationItemStatus(
   evalItemIds: string[]
@@ -206,7 +267,14 @@ export async function getBatchEvaluationItemStatus(
 
     // Initialize default status for each evalItemId based on database status
     evalItemIds.forEach((id) => {
-      statusMap.set(id, itemStatusByDb.get(id) || EvaluationStatusEnum.queuing);
+      const dbStatus = itemStatusByDb.get(id);
+      if (dbStatus === undefined) {
+        // 2.1. 不存在MongoEvalItem, 状态为error (数据异常)
+        statusMap.set(id, EvaluationStatusEnum.error);
+      } else {
+        // 2.2/2.3. 存在MongoEvalItem, 使用数据库状态
+        statusMap.set(id, dbStatus);
+      }
     });
 
     // Group jobs by evalItemId and batch get states
@@ -240,31 +308,44 @@ export async function getBatchEvaluationItemStatus(
     for (const [itemId, jobs] of jobsByItemId.entries()) {
       const jobStates = jobs.map((job) => jobStateMap.get(job)!);
 
-      // Determine status by priority: evaluating > error > queuing > completed
+      // Case 1: relatedJobs.length > 0, apply correct priority logic
       let status = EvaluationStatusEnum.queuing;
 
+      // 1.1. 存在job为运行中 (active), 则状态为evaluating
       if (jobStates.includes('active')) {
         status = EvaluationStatusEnum.evaluating;
-      } else if (jobStates.includes('failed')) {
-        status = EvaluationStatusEnum.error;
-      } else if (jobStates.some((state) => ['waiting', 'delayed', 'prioritized'].includes(state))) {
+      }
+      // 1.2. 存在job为代处理 (waiting, delayed等)， 则状态为queuing
+      else if (jobStates.some((state) => ['waiting', 'delayed', 'prioritized'].includes(state))) {
         status = EvaluationStatusEnum.queuing;
-      } else if (jobStates.includes('completed')) {
-        status = EvaluationStatusEnum.completed;
+      }
+      // 1.3. 所有job都为完成状态 (completed, failed)
+      else if (jobStates.every((state) => ['completed', 'failed'].includes(state))) {
+        // 1.3.1. 有任何job是failed, 状态为error
+        if (jobStates.includes('failed')) {
+          status = EvaluationStatusEnum.error;
+        }
+        // 1.3.2. 所有job都是completed, 状态为completed
+        else if (jobStates.every((state) => state === 'completed')) {
+          status = EvaluationStatusEnum.completed;
+        }
       }
 
       statusMap.set(itemId, status);
     }
   } catch (error) {
     addLog.error('Error getting batch evaluation item status:', { evalItemIds, error });
-    // If error occurs, keep default status
+    // If error occurs, set all items to error status
+    evalItemIds.forEach((id) => {
+      statusMap.set(id, EvaluationStatusEnum.error);
+    });
   }
 
   return statusMap;
 }
 
 /**
- * Get evaluation task statistics replacing database status field-based calculation
+ * Get evaluation task statistics by reusing batch status calculation for consistency
  */
 export async function getEvaluationTaskStats(evalId: string): Promise<{
   total: number;
@@ -274,13 +355,14 @@ export async function getEvaluationTaskStats(evalId: string): Promise<{
   error: number;
 }> {
   try {
-    // Get all evaluation items from database
+    // Get all evaluation item IDs
     const allEvalItems = await MongoEvalItem.find(
       { evalId: new Types.ObjectId(evalId) },
-      { _id: 1, finishTime: 1, errorMessage: 1, 'metadata.status': 1 }
+      { _id: 1 }
     ).lean();
 
-    const totalItems = allEvalItems.length;
+    const evalItemIds = allEvalItems.map((item) => item._id.toString());
+    const totalItems = evalItemIds.length;
 
     if (totalItems === 0) {
       return {
@@ -292,131 +374,39 @@ export async function getEvaluationTaskStats(evalId: string): Promise<{
       };
     }
 
-    // Get related jobs from job queue
-    const itemJobs = await evaluationItemQueue.getJobs([
-      'waiting',
-      'active',
-      'delayed',
-      'failed',
-      'completed'
-    ]);
-
-    const relatedJobs = itemJobs.filter((job) => job.data.evalId === evalId);
-
-    // Create mapping from job ID to evaluation item ID
-    const jobsByItemId = new Map<string, any>();
-    relatedJobs.forEach((job) => {
-      if (job.data.evalItemId) {
-        jobsByItemId.set(job.data.evalItemId, job);
-      }
-    });
+    // Reuse batch status calculation logic to ensure consistency
+    const statusMap = await getBatchEvaluationItemStatus(evalItemIds);
 
     // Count status distribution
-    let completed = 0;
-    let evaluating = 0;
-    let queuing = 0;
-    let error = 0;
-
-    // Optimize: batch get all job states to avoid multiple async calls in loop
-    const jobsToCheck = Array.from(jobsByItemId.values());
-    const jobStatesWithJobs = await Promise.all(
-      jobsToCheck.map(async (job) => ({
-        job,
-        state: await job.getState()
-      }))
-    );
-
-    // Create job to state mapping
-    const jobStateMap = new Map<any, string>();
-    jobStatesWithJobs.forEach(({ job, state }) => {
-      jobStateMap.set(job, state);
-    });
-
-    // Calculate status for each evaluation item (sync loop to avoid concurrent counter modification)
-    for (const item of allEvalItems) {
-      const itemId = item._id.toString();
-      const job = jobsByItemId.get(itemId);
-
-      if (job) {
-        // Has corresponding job, determine by job state
-        const jobState = jobStateMap.get(job);
-
-        // Direct mapping from job state to evaluation state
-        if (jobState === 'active') {
-          evaluating++;
-        } else if (jobState === 'failed') {
-          error++;
-        } else if (jobState === 'completed') {
-          completed++;
-        } else if (['waiting', 'delayed', 'prioritized'].includes(jobState || '')) {
-          queuing++;
-        } else {
-          // Unknown job state, determine by metadata.status first (now reliable), then database status
-          if (item.metadata?.status && item.metadata.status !== EvaluationStatusEnum.queuing) {
-            // Trust metadata.status for non-queuing states (these are actively managed)
-            switch (item.metadata.status) {
-              case EvaluationStatusEnum.completed:
-                completed++;
-                break;
-              case EvaluationStatusEnum.evaluating:
-                evaluating++;
-                break;
-              case EvaluationStatusEnum.error:
-                error++;
-                break;
-              default:
-                queuing++;
-                break;
-            }
-          } else if (item.finishTime) {
-            // No reliable metadata, use database status
-            if (item.errorMessage) {
-              error++;
-            } else {
-              completed++;
-            }
-          } else {
-            queuing++;
-          }
-        }
-      } else {
-        // No corresponding job, determine by metadata.status first (now reliable), then database status
-        if (item.metadata?.status && item.metadata.status !== EvaluationStatusEnum.queuing) {
-          // Trust metadata.status for non-queuing states (these are actively managed)
-          switch (item.metadata.status) {
-            case EvaluationStatusEnum.completed:
-              completed++;
-              break;
-            case EvaluationStatusEnum.evaluating:
-              evaluating++;
-              break;
-            case EvaluationStatusEnum.error:
-              error++;
-              break;
-            default:
-              queuing++;
-              break;
-          }
-        } else if (item.finishTime) {
-          // No reliable metadata, use database status
-          if (item.errorMessage) {
-            error++;
-          } else {
-            completed++;
-          }
-        } else {
-          queuing++;
-        }
-      }
-    }
-
     const stats = {
       total: totalItems,
-      completed,
-      evaluating,
-      queuing,
-      error
+      completed: 0,
+      evaluating: 0,
+      queuing: 0,
+      error: 0
     };
+
+    // Count each status
+    statusMap.forEach((status) => {
+      switch (status) {
+        case EvaluationStatusEnum.completed:
+          stats.completed++;
+          break;
+        case EvaluationStatusEnum.evaluating:
+          stats.evaluating++;
+          break;
+        case EvaluationStatusEnum.queuing:
+          stats.queuing++;
+          break;
+        case EvaluationStatusEnum.error:
+          stats.error++;
+          break;
+        default:
+          // Unknown status, count as queuing for safety
+          stats.queuing++;
+          break;
+      }
+    });
 
     return stats;
   } catch (error) {
