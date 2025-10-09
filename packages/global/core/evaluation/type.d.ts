@@ -28,10 +28,9 @@ export interface RuntimeConfig {
 
 // Summary configuration type
 export interface SummaryConfig {
-  metricId: string; // Metric ID for mapping relationship
-  metricName: string; // Metric name for display
+  metricId: string;
+  metricName: string;
   weight: number;
-  calculateType: CalculateMethodEnum;
   summary: string;
   summaryStatus: SummaryStatusEnum;
   errorReason: string;
@@ -64,6 +63,7 @@ export type EvaluationSchemaType = {
   evalDatasetCollectionId: string; // Associated evaluation dataset collection
   target: EvalTarget; // Embedded evaluation target
   evaluators: EvaluatorSchema[]; // Array of evaluator configurations
+  calculateType: CalculateMethodEnum; // Calculation method for all metrics
   summaryConfigs: SummaryConfig[]; // Array of summary configs, one for each metric
   usageId: string;
   status: EvaluationStatusEnum; // Computed real-time from job queues
@@ -203,7 +203,6 @@ export interface GenerateSummaryParams {
 export interface GenerateSummaryResponse {
   success: boolean;
   message: string;
-  taskId?: string;
 }
 
 export interface SummaryGenerationTaskData {

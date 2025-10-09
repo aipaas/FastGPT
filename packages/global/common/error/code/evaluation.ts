@@ -148,7 +148,8 @@ export enum EvaluationErrEnum {
   summaryCalculateTypeInvalid = 'evaluationSummaryCalculateTypeInvalid',
   summaryNoValidMetricsFound = 'evaluationSummaryNoValidMetricsFound',
   summaryStreamResponseNotSupported = 'evaluationSummaryStreamResponseNotSupported',
-  summaryWeightSumMustBe100 = 'evaluationSummaryWeightSumMustBe100'
+  summaryWeightSumMustBe100 = 'evaluationSummaryWeightSumMustBe100',
+  summaryModelInvalid = 'evaluationSummaryModelInvalid'
 }
 
 const evaluationErrList = [
@@ -613,6 +614,10 @@ const evaluationErrList = [
   {
     statusText: EvaluationErrEnum.summaryWeightSumMustBe100,
     message: i18nT('evaluation:summary_weight_sum_must_be_100')
+  },
+  {
+    statusText: EvaluationErrEnum.summaryModelInvalid,
+    message: i18nT('evaluation:summary_model_invalid')
   },
 
   // Model validation errors

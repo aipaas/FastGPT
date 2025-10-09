@@ -183,14 +183,9 @@ describe('EvaluationTaskService Integration Tests', () => {
         metricId: evaluator.metric._id.toString(),
         metricName: evaluator.metric.name,
         weight: 100,
-        calculateType: 'mean',
-        score: 0,
         summary: '',
         summaryStatus: 'pending',
-        errorReason: '',
-        completedItemCount: 0,
-        overThresholdItemCount: 0,
-        thresholdPassRate: 0
+        errorReason: ''
       }))
     }));
 

@@ -129,6 +129,12 @@ export const EvaluationTaskSchema = new Schema({
   },
   target: EvaluationTargetSchema,
   evaluators: [EvaluationEvaluatorSchema],
+  calculateType: {
+    type: String,
+    enum: CaculateMethodValues,
+    required: true,
+    default: CalculateMethodEnum.mean
+  },
   usageId: {
     type: Schema.Types.ObjectId,
     ref: UsageCollectionName,
@@ -154,11 +160,6 @@ export const EvaluationTaskSchema = new Schema({
       },
       weight: {
         type: Number,
-        required: true
-      },
-      calculateType: {
-        type: String,
-        enum: CaculateMethodValues,
         required: true
       },
       summary: {
