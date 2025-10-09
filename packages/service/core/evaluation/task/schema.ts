@@ -218,7 +218,7 @@ export const EvaluationItemSchema = new Schema({
       type: String,
       enum: EvaluationStatusValues,
       default: EvaluationStatusEnum.queuing,
-      index: true // Index for status filtering
+      index: true
     }
   }
 });
@@ -238,7 +238,7 @@ EvaluationItemSchema.index({
   'dataItem.userInput': 'text',
   'dataItem.expectedOutput': 'text',
   'targetOutput.actualOutput': 'text'
-}); // Text search across inputs and outputs
+});
 
 export const MongoEvaluation = getMongoModel<EvaluationSchemaType>(
   EvaluationCollectionName,

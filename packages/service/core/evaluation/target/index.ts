@@ -159,6 +159,12 @@ export class WorkflowTarget extends EvaluationTarget {
         maxRunTimes: WORKFLOW_MAX_RUN_TIMES
       });
 
+    //TODO check workflow whether have any error happen, if happen, raise response error
+    flowResponses.some((moduleRes) => {
+      if (moduleRes.errorText) {
+        throw new Error(moduleRes.errorText);
+      }
+    });
     const response = removeDatasetCiteText(assistantResponses[0]?.text?.content || '', false);
 
     // Construct user question object
