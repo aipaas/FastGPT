@@ -30,6 +30,16 @@ description: FastGPT 配置参数介绍
       "key": "", // 自定义 PDF 解析服务密钥
       "doc2xKey": "", // doc2x 服务密钥
       "price": 0 // PDF 解析服务价格
+    },
+    "evalConfig": {		// 应用评测配置
+      "taskConcurrency": 3,	// 评测任务并发数
+      "caseConcurrency": 10,	// 评测用例并发数
+      "caseMaxRetry": 3,	// 评测用例最大重试次数
+      "caseResultThreshold": 0.8, // 评测用例结果阈值
+      "summaryConcurrency": 1,	  // 评测总结并发数
+      "dataQualityConcurrency": 2, // 数据质量评测并发数
+      "datasetDataSynthesizeConcurrency": 5, // 评测数据集数据合成并发数
+      "datasetSmartGenerateConcurrency": 2   // 评测数据集智能生成并发数
     }
   }
 }
