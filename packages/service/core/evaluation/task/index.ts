@@ -11,12 +11,11 @@ import type {
 import { Types } from 'mongoose';
 import { EvaluationStatusEnum } from '@fastgpt/global/core/evaluation/constants';
 import {
-  removeEvaluationTaskJob,
   removeEvaluationItemJobs,
   removeEvaluationItemJobsByItemId,
-  addEvaluationTaskJob,
   addEvaluationItemJob,
-  evaluationItemQueue
+  evaluationItemQueue,
+  checkEvaluationItemQueueHealth
 } from './mq';
 import { createEvaluationUsage } from '../../../support/wallet/usage/controller';
 import { addLog } from '../../../common/system/log';
@@ -27,6 +26,7 @@ import { type ClientSession } from '../../../common/mongo';
 import { getEvaluationTaskStatus, getEvaluationTaskStats } from './statusCalculator';
 import { EvaluationSummaryService } from '../summary';
 import { removeEvaluationSummaryJobs } from '../summary/queue';
+import { enqueueEvaluationItems } from './processor';
 
 export class EvaluationTaskService {
   /**
@@ -102,7 +102,8 @@ export class EvaluationTaskService {
     const { evaluators: evaluatorsWithDefaultConfig, summaryConfigs } = buildEvalDataConfig(
       evaluationParams.evaluators
     );
-    const createAndStart = async (session: ClientSession) => {
+    await checkEvaluationItemQueueHealth();
+    const createEvaluationWithItems = async (session: ClientSession) => {
       // Create evaluation in transaction
       const evaluation = await MongoEvaluation.create(
         [
@@ -122,6 +123,7 @@ export class EvaluationTaskService {
       const evaluationObject = evaluation[0].toObject();
 
       // Load dataset and create evaluation items
+      // Ensure we only operate on committed dataset documents inside the transaction
       const dataItems = await MongoEvalDatasetData.find({
         evalDatasetCollectionId: evaluationParams.evalDatasetCollectionId,
         teamId
@@ -154,22 +156,28 @@ export class EvaluationTaskService {
       const insertedItems = await MongoEvalItem.insertMany(evalItems, { session });
       addLog.debug(`[Evaluation] Created ${insertedItems.length} evaluation items`);
 
-      // Auto-start evaluation if enabled
-      if (autoStart) {
-        // Add to task queue with deduplication
-        await addEvaluationTaskJob({
-          evalId: evaluationObject._id.toString()
-        });
-
-        addLog.debug(`[Evaluation] Task created and auto-started: ${evaluationObject._id}`);
-      } else {
-        addLog.debug(`[Evaluation] Task created: ${evaluationObject._id}`);
-      }
-
-      return evaluationObject;
+      return {
+        evaluation: evaluationObject,
+        insertedItemCount: insertedItems.length
+      };
     };
 
-    return await mongoSessionRun(createAndStart);
+    const { evaluation, insertedItemCount } = await mongoSessionRun(createEvaluationWithItems);
+
+    // Auto-start evaluation if enabled – this now occurs after the transaction commits
+    if (autoStart) {
+      await enqueueEvaluationItems(evaluation._id.toString());
+
+      addLog.debug(`[Evaluation] Task created and auto-started after commit: ${evaluation._id}`, {
+        insertedItemCount
+      });
+    } else {
+      addLog.debug(`[Evaluation] Task created: ${evaluation._id}`, {
+        insertedItemCount
+      });
+    }
+
+    return evaluation;
   }
 
   static async getEvaluation(evalId: string, teamId: string): Promise<EvaluationSchemaType> {
@@ -207,12 +215,7 @@ export class EvaluationTaskService {
   static async deleteEvaluation(evalId: string, teamId: string): Promise<void> {
     const del = async (session: ClientSession) => {
       // Remove tasks from queue to prevent further processing
-      const [taskCleanupResult, itemCleanupResult, summaryCleanupResult] = await Promise.all([
-        removeEvaluationTaskJob(evalId, {
-          forceCleanActiveJobs: true,
-          retryAttempts: 3,
-          retryDelay: 200
-        }),
+      const [itemCleanupResult, summaryCleanupResult] = await Promise.all([
         removeEvaluationItemJobs(evalId, {
           forceCleanActiveJobs: true,
           retryAttempts: 3,
@@ -227,7 +230,6 @@ export class EvaluationTaskService {
 
       addLog.debug('Queue cleanup completed for evaluation deletion', {
         evalId,
-        taskCleanup: taskCleanupResult,
         itemCleanup: itemCleanupResult,
         summaryCleanup: summaryCleanupResult
       });
@@ -582,9 +584,7 @@ export class EvaluationTaskService {
       throw new Error(EvaluationErrEnum.evalInvalidStateTransition);
     }
 
-    await addEvaluationTaskJob({
-      evalId: evalId
-    });
+    await enqueueEvaluationItems(evalId);
 
     const action =
       evaluation.status === EvaluationStatusEnum.error
@@ -606,12 +606,7 @@ export class EvaluationTaskService {
 
     const stopEval = async (session: ClientSession) => {
       // Remove tasks from queue
-      const [taskCleanupResult, itemCleanupResult, summaryCleanupResult] = await Promise.all([
-        removeEvaluationTaskJob(evalId, {
-          forceCleanActiveJobs: true,
-          retryAttempts: 3,
-          retryDelay: 200
-        }),
+      const [itemCleanupResult, summaryCleanupResult] = await Promise.all([
         removeEvaluationItemJobs(evalId, {
           forceCleanActiveJobs: true,
           retryAttempts: 3,
@@ -626,7 +621,6 @@ export class EvaluationTaskService {
 
       addLog.debug('Queue cleanup completed for evaluation stop', {
         evalId,
-        taskCleanup: taskCleanupResult,
         itemCleanup: itemCleanupResult,
         summaryCleanup: summaryCleanupResult
       });

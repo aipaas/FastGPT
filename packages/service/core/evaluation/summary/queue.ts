@@ -3,11 +3,7 @@ import { QueueNames } from '../../../common/bullmq';
 import { addLog } from '../../../common/system/log';
 import { SummaryStatusHandler } from './statusHandler';
 import { SummaryStatusEnum } from '@fastgpt/global/core/evaluation/constants';
-import {
-  createJobCleaner,
-  type JobCleanupResult,
-  type JobCleanupOptions
-} from '../utils/jobCleanup';
+import { createJobCleaner, type JobCleanupResult, type JobCleanupOptions } from '../utils/mq';
 
 // 评估总结任务数据接口
 export interface EvaluationSummaryJobData {
