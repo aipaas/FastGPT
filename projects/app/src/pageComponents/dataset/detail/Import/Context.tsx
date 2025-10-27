@@ -66,7 +66,7 @@ export const defaultFormData: ImportFormType = {
   chunkSplitter: '',
   indexSize: getAutoIndexSize(),
 
-  qaPrompt: Prompt_AgentQA.description,
+  qaPrompt: Prompt_AgentQA,
   webSelector: ''
 };
 

@@ -96,7 +96,7 @@ const WebsiteConfigModal = ({
 
       indexSize: chunkSettings?.indexSize || defaultFormData.indexSize,
 
-      qaPrompt: chunkSettings?.qaPrompt || Prompt_AgentQA.description
+      qaPrompt: chunkSettings?.qaPrompt || Prompt_AgentQA
     }
   });
 

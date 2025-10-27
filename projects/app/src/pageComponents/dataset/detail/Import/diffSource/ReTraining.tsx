@@ -75,7 +75,7 @@ const ReTraining = () => {
         indexSize: collection.indexSize || defaultFormData.indexSize,
 
         webSelector: collection.metadata?.webPageSelector || defaultFormData.webSelector,
-        qaPrompt: collection.qaPrompt || Prompt_AgentQA.description
+        qaPrompt: collection.qaPrompt || Prompt_AgentQA
       });
     }
   });

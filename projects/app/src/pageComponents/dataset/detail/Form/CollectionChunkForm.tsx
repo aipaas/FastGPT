@@ -67,12 +67,11 @@ const PromptTextarea = ({
     >
       <ModalBody whiteSpace={'pre-wrap'} fontSize={'sm'} px={[3, 6]} pt={[3, 6]}>
         <Textarea ref={ref} rows={8} fontSize={'sm'} defaultValue={defaultValue} />
-        <Box>{Prompt_AgentQA.fixedText}</Box>
       </ModalBody>
       <ModalFooter>
         <Button
           onClick={() => {
-            const val = ref.current?.value || Prompt_AgentQA.description;
+            const val = ref.current?.value || Prompt_AgentQA;
             onChange(val);
             onClose();
           }}

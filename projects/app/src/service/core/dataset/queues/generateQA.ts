@@ -119,8 +119,7 @@ export async function generateQA(): Promise<any> {
 
       try {
         const modelData = getLLMModel(data.dataset.agentModel);
-        const prompt = `${data.collection.qaPrompt || Prompt_AgentQA.description}
-  ${replaceVariable(Prompt_AgentQA.fixedText, { text })}`;
+        const prompt = replaceVariable(data.collection.qaPrompt || Prompt_AgentQA, { text });
 
         // request LLM to get QA
         const messages: ChatCompletionMessageParam[] = [
