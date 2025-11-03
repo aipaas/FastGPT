@@ -411,6 +411,122 @@ print(f"Generated answer: {result['data']['qaPair']['answer']}")
 - `HOST`: Service bind address (default: 0.0.0.0)
 - `PORT`: Service port (default: 3000)
 
+### OpenTelemetry Integration
+
+DiTing supports OpenTelemetry for distributed tracing, providing comprehensive observability for evaluation and synthesis workflows.
+
+#### Installation
+
+To enable OpenTelemetry support, install the optional dependencies:
+
+```bash
+# Install diting-core with OpenTelemetry support
+pip install diting-core[otel]
+
+# Or using uv
+uv add diting-core[otel]
+```
+
+#### Configuration
+
+OpenTelemetry tracing is configured through environment variables:
+
+- `DITING_OTEL_ENABLED`: Enable/disable OpenTelemetry tracing (default: false)
+- `DITING_OTEL_SERVICE_NAME`: Service name for tracing (default: "diting")
+- `DITING_OTEL_ENDPOINT`: OTLP HTTP endpoint URL (required if enabled)
+- `DITING_OTEL_HEADERS`: Headers for OTLP requests (JSON format, optional)
+- `DITING_OTEL_INSECURE`: Use insecure connection (default: true)
+
+#### Example Configuration
+
+```bash
+# Enable OpenTelemetry with Jaeger
+export DITING_OTEL_ENABLED=true
+export DITING_OTEL_SERVICE_NAME=diting-production
+export DITING_OTEL_ENDPOINT=http://jaeger:4318/v1/traces
+
+# Enable with custom headers (for services requiring authentication)
+export DITING_OTEL_ENABLED=true
+export DITING_OTEL_ENDPOINT=https://your-tracing-service.com/v1/traces
+export DITING_OTEL_HEADERS='{"Authorization": "Bearer your-token"}'
+```
+
+#### Usage Examples
+
+**Basic Usage with Environment Configuration:**
+
+```python
+from diting_core.callbacks.opentelemetry import OpenTelemetryCallbackHandler
+from diting_core.callbacks.stdout import StdOutCallbackHandler
+
+# Handler will automatically use environment configuration
+otel_handler = OpenTelemetryCallbackHandler()
+
+if otel_handler.is_enabled:
+    print("OpenTelemetry tracing is active")
+    handlers = [StdOutCallbackHandler(), otel_handler]
+else:
+    print("OpenTelemetry tracing is not configured")
+    handlers = [StdOutCallbackHandler()]
+
+# Use handlers in your evaluation or synthesis tasks
+# handlers parameter will be passed to metric.compute() or synthesizer.generate()
+```
+
+**Custom Configuration:**
+
+```python
+from diting_core.callbacks.opentelemetry import OpenTelemetryCallbackHandler
+from diting_core.callbacks.otel_config import OpenTelemetryConfig
+
+# Create custom configuration
+config = OpenTelemetryConfig(
+    enabled=True,
+    service_name="diting-dev",
+    endpoint="http://localhost:4318/v1/traces",
+    headers={"Authorization": "Bearer dev-token"},
+    insecure=True,
+)
+
+# Initialize handler with custom config
+handler = OpenTelemetryCallbackHandler(config)
+```
+
+#### What Gets Traced
+
+OpenTelemetry integration captures comprehensive tracing data for DiTing workflows:
+
+**Chain Spans**: Each evaluation or synthesis operation creates a span with:
+- Chain name and type (metric, synthetic, llm, embed, corpora, func)
+- Input/output data (sanitized and truncated for size limits)
+- Execution timing and duration
+- Parent-child relationships for nested operations
+- Metadata and configuration information
+
+**Error Tracking**: Automatic error capture with:
+- Error type and message
+- Full stack traces
+- Error timestamps
+- Failed span context
+
+**Span Attributes**: Detailed context including:
+- Service name and version
+- Chain type categorization
+- Run IDs for correlation
+- Input/output schemas
+- Custom metadata
+
+#### Supported Backends
+
+OpenTelemetry integration works with any OTLP-compatible backend:
+
+- **Jaeger**: Open source distributed tracing platform
+- **Zipkin**: Distributed tracing system
+- **Datadog**: Commercial observability platform
+- **New Relic**: Application performance monitoring
+- **Grafana Tempo**: Open source tracing backend
+- **Custom OTLP endpoints**: Any service supporting OTLP/HTTP
+
 ### Model Configuration
 
 Support for multiple LLM and Embedding models:

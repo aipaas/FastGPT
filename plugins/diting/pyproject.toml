@@ -5,7 +5,7 @@ description = "Diting: A unified framework for evaluation and data generation, c
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-  "diting-core",
+  "diting-core[otel]",
   "diting-server",
 ]
 
