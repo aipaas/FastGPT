@@ -7,7 +7,9 @@ export enum DatasetDataIndexTypeEnum {
   question = 'question',
   image = 'image',
   column_des_index = 'column_des_index',
-  column_val_index = 'column_val_index'
+  column_val_index = 'column_val_index',
+  hype = 'hype',
+  small2Big = 'small2Big'
 }
 
 export const DatasetDataIndexMap: Record<
@@ -44,6 +46,14 @@ export const DatasetDataIndexMap: Record<
   [DatasetDataIndexTypeEnum.column_val_index]: {
     label: i18nT('dataset:data_index_column_value'),
     color: 'cyan'
+  },
+  [DatasetDataIndexTypeEnum.hype]: {
+    label: i18nT('dataset:data_index_hype'),
+    color: 'teal'
+  },
+  [DatasetDataIndexTypeEnum.small2Big]: {
+    label: i18nT('dataset:data_index_small2big'),
+    color: 'pink'
   }
 };
 export const defaultDatasetIndexData = DatasetDataIndexMap[DatasetDataIndexTypeEnum.custom];

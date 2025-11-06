@@ -273,7 +273,9 @@ export enum TrainingModeEnum {
   auto = 'auto',
   image = 'image',
   imageParse = 'imageParse',
-  databaseSchema = 'databaseSchema'
+  databaseSchema = 'databaseSchema',
+  hype = 'hype',
+  small2Big = 'small2Big'
 }
 
 /* ------------ search -------------- */
@@ -339,6 +341,11 @@ export const SearchScoreTypeMap = {
     showScore: false
   }
 };
+
+export enum RerankMethodEnum {
+  question = 'question',
+  content = 'content' // Default
+}
 
 export const CustomCollectionIcon = 'common/linkBlue';
 export const LinkCollectionIcon = 'common/linkBlue';

@@ -34,7 +34,9 @@ const defaultCounts: Record<TrainingModeEnum, number> = {
   image: 0,
   auto: 0,
   imageParse: 0,
-  databaseSchema: 0
+  databaseSchema: 0,
+  hype: 0,
+  small2Big: 0
 };
 
 async function handler(

@@ -15,7 +15,7 @@ import {
 } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 import MyModal from '@fastgpt/web/components/common/MyModal';
-import { DatasetSearchModeEnum } from '@fastgpt/global/core/dataset/constants';
+import { DatasetSearchModeEnum, RerankMethodEnum } from '@fastgpt/global/core/dataset/constants';
 import { useTranslation } from 'next-i18next';
 import { useSystemStore } from '@/web/common/system/useSystemStore';
 
@@ -31,6 +31,7 @@ import LeftRadio from '@fastgpt/web/components/common/Radio/LeftRadio';
 import { type AppDatasetSearchParamsType } from '@fastgpt/global/core/app/type';
 import MyIcon from '@fastgpt/web/components/common/Icon';
 import MyNumberInput from '@fastgpt/web/components/common/Input/NumberInput';
+import MySelect from '@fastgpt/web/components/common/MySelect';
 
 enum SearchSettingTabEnum {
   searchMode = 'searchMode',
@@ -46,6 +47,7 @@ const DatasetParamsModal = ({
   usingReRank,
   rerankModel,
   rerankWeight,
+  rerankMethod,
   datasetSearchUsingExtensionQuery,
   datasetSearchExtensionModel,
   datasetSearchExtensionBg,
@@ -87,6 +89,7 @@ const DatasetParamsModal = ({
         usingReRank: !!usingReRank,
         rerankModel: rerankModel || defaultModels?.rerank?.model,
         rerankWeight: rerankWeight || 0.5,
+        rerankMethod: rerankMethod || RerankMethodEnum.content,
         limit,
         similarity,
         datasetSearchUsingExtensionQuery,
@@ -108,6 +111,7 @@ const DatasetParamsModal = ({
 
   const usingReRankWatch = watch('usingReRank');
   const reRankModelWatch = watch('rerankModel');
+  const rerankMethodWatch = watch('rerankMethod');
   const rerankWeightWatch = watch('rerankWeight');
   const generateSqlModelWatch = watch('generateSqlModel');
 
@@ -327,6 +331,34 @@ const DatasetParamsModal = ({
                   </HStack>
                   {usingReRankWatch && (
                     <>
+                      {/* 新增的重排方式选择 */}
+                      <HStack mt={3} justifyContent={'space-between'}>
+                        <Box fontSize={'sm'} flex={'0 0 100px'} color={'myGray.700'}>
+                          {t('common:rerank_method')}
+                        </Box>
+                        <Box flex={'1 0 0'}>
+                          <MySelect
+                            bg={'myGray.50'}
+                            h={'36px'}
+                            value={rerankMethodWatch}
+                            list={[
+                              {
+                                label: t('common:rerank_method.q2a'),
+                                value: RerankMethodEnum.content,
+                                description: t('common:rerank_method_q2a_desc')
+                              },
+                              {
+                                label: t('common:rerank_method.q2q'),
+                                value: RerankMethodEnum.question,
+                                description: t('common:rerank_method_q2q_desc')
+                              }
+                            ]}
+                            onChange={(val) => {
+                              setValue('rerankMethod', val);
+                            }}
+                          />
+                        </Box>
+                      </HStack>
                       <HStack mt={3} justifyContent={'space-between'}>
                         <Box fontSize={'sm'} flex={'0 0 100px'} color={'myGray.700'}>
                           {t('common:rerank_weight')}

@@ -34,6 +34,8 @@ import MyNumberInput from '@fastgpt/web/components/common/Input/NumberInput';
 import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
 import MySelect from '@fastgpt/web/components/common/MySelect';
+import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
+import { getDatasetEnhanceDefaultPrompts, type EnhanceConfigType } from '@/web/core/dataset/api';
 import {
   chunkAutoChunkSize,
   getIndexSizeSelectList,
@@ -44,6 +46,7 @@ import {
   minChunkSize
 } from '@fastgpt/global/core/dataset/training/utils';
 import RadioGroup from '@fastgpt/web/components/common/Radio/RadioGroup';
+import ConfigPromptModal from '@/pageComponents/dataset/detail/ConfigPromptModal';
 
 const PromptTextarea = ({
   defaultValue = '',
@@ -97,7 +100,11 @@ export type CollectionChunkFormType = {
   // Index enhance
   imageIndex: boolean;
   autoIndexes: boolean;
+  hypeIndexes: boolean;
   indexPrefixTitle: boolean;
+  autoIndexesPrompt?: string;
+  hypeIndexPrompt?: string;
+  imageIndexPrompt?: string;
 
   // Chunk setting
   chunkSettingMode: ChunkSettingModeEnum; // 系统参数/自定义参数
@@ -131,6 +138,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
   const chunkSettingMode = watch('chunkSettingMode');
   const chunkSplitMode = watch('chunkSplitMode');
   const autoIndexes = watch('autoIndexes');
+  const hypeIndexes = watch('hypeIndexes');
   const indexSize = watch('indexSize');
   const imageIndex = watch('imageIndex');
   const indexPrefixTitle = watch('indexPrefixTitle');
@@ -216,6 +224,42 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
 
   const showQAPromptInput = trainingType === DatasetCollectionDataProcessModeEnum.qa;
 
+  // Config prompt modal
+  const {
+    isOpen: isOpenConfigPrompt,
+    onOpen: onOpenConfigPrompt,
+    onClose: onCloseConfigPrompt
+  } = useDisclosure();
+  const [currentPromptType, setCurrentPromptType] = useState<string>('');
+
+  const handleOpenConfigPrompt = (type: string) => {
+    setCurrentPromptType(type);
+    onOpenConfigPrompt();
+  };
+
+  const handleSavePrompt = async (content: string) => {
+    if (currentPromptType === 'autoIndexes') {
+      setValue('autoIndexesPrompt', content);
+    } else if (currentPromptType === 'hypeIndexes') {
+      setValue('hypeIndexPrompt', content);
+    } else if (currentPromptType === 'imageIndex') {
+      setValue('imageIndexPrompt', content);
+    }
+  };
+
+  // 获取默认提示词
+  const { runAsync: fetchDefaultPrompts } = useRequest2(
+    async () => {
+      const prompts = await getDatasetEnhanceDefaultPrompts();
+      setValue('autoIndexesPrompt', prompts.autoIndexesPrompt);
+      setValue('hypeIndexPrompt', prompts.hypeIndexPrompt);
+      setValue('imageIndexPrompt', prompts.imageIndexPrompt || '');
+    },
+    {
+      manual: false
+    }
+  );
+
   // Adapt 4.9.0- auto training
   useEffect(() => {
     if (trainingType === DatasetCollectionDataProcessModeEnum.auto) {
@@ -223,6 +267,11 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
       setValue('trainingType', DatasetCollectionDataProcessModeEnum.chunk);
     }
   }, [trainingType, setValue]);
+
+  // 在组件挂载时获取默认提示词
+  useEffect(() => {
+    fetchDefaultPrompts();
+  }, []);
 
   return (
     <>
@@ -312,6 +361,38 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                     </Checkbox>
                   </MyTooltip>
                   <QuestionTip label={t('dataset:auto_indexes_tips')} />
+                  <MyTooltip label={t('dataset:config_prompt')}>
+                    <MyIcon
+                      name={'common/settingLight'}
+                      w={'16px'}
+                      cursor={'pointer'}
+                      color={'myGray.500'}
+                      _hover={{ color: 'primary.500' }}
+                      onClick={() => handleOpenConfigPrompt('autoIndexes')}
+                    />
+                  </MyTooltip>
+                </HStack>
+                <HStack flex={'1'} spacing={1}>
+                  <MyTooltip label={!feConfigs?.isPlus ? t('common:commercial_function_tip') : ''}>
+                    <Checkbox
+                      isDisabled={!feConfigs?.isPlus}
+                      isChecked={hypeIndexes}
+                      {...register('hypeIndexes')}
+                    >
+                      <FormLabel>{t('dataset:hype_enhanced_index')}</FormLabel>
+                    </Checkbox>
+                  </MyTooltip>
+                  <QuestionTip label={t('dataset:hype_enhanced_index_tips')} />
+                  <MyTooltip label={t('dataset:config_prompt')}>
+                    <MyIcon
+                      name={'common/settingLight'}
+                      w={'16px'}
+                      cursor={'pointer'}
+                      color={'myGray.500'}
+                      _hover={{ color: 'primary.500' }}
+                      onClick={() => handleOpenConfigPrompt('hypeIndexes')}
+                    />
+                  </MyTooltip>
                 </HStack>
                 <HStack flex={'1'} spacing={1}>
                   <MyTooltip
@@ -332,6 +413,16 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                     </Checkbox>
                   </MyTooltip>
                   <QuestionTip label={t('dataset:image_auto_parse_tips')} />
+                  <MyTooltip label={t('dataset:config_prompt')}>
+                    <MyIcon
+                      name={'common/settingLight'}
+                      w={'16px'}
+                      cursor={'pointer'}
+                      color={'myGray.500'}
+                      _hover={{ color: 'primary.500' }}
+                      onClick={() => handleOpenConfigPrompt('imageIndex')}
+                    />
+                  </MyTooltip>
                 </HStack>
               </>
             )}
@@ -609,6 +700,24 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
             setValue('qaPrompt', e);
           }}
           onClose={onCloseCustomPrompt}
+        />
+      )}
+
+      {/* Config Prompt Modal */}
+      {isOpenConfigPrompt && (
+        <ConfigPromptModal
+          isOpen={isOpenConfigPrompt}
+          onClose={onCloseConfigPrompt}
+          defaultValue={
+            currentPromptType === 'autoIndexes'
+              ? getValues('autoIndexesPrompt')
+              : currentPromptType === 'hypeIndexes'
+                ? getValues('hypeIndexPrompt')
+                : currentPromptType === 'imageIndex'
+                  ? getValues('imageIndexPrompt')
+                  : ''
+          }
+          onSuccess={handleSavePrompt}
         />
       )}
     </>
