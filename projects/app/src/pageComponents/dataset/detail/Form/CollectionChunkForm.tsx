@@ -35,7 +35,7 @@ import QuestionTip from '@fastgpt/web/components/common/MyTooltip/QuestionTip';
 import { DatasetPageContext } from '@/web/core/dataset/context/datasetPageContext';
 import MySelect from '@fastgpt/web/components/common/MySelect';
 import { useRequest2 } from '@fastgpt/web/hooks/useRequest';
-import { getDatasetEnhanceDefaultPrompts, type EnhanceConfigType } from '@/web/core/dataset/api';
+import { getDatasetEnhanceDefaultPrompts } from '@/web/core/dataset/api';
 import {
   chunkAutoChunkSize,
   getIndexSizeSelectList,
@@ -237,7 +237,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
     onOpenConfigPrompt();
   };
 
-  const handleSavePrompt = async (content: string) => {
+  const handleSavePrompt = (content: string) => {
     if (currentPromptType === 'autoIndexes') {
       setValue('autoIndexesPrompt', content);
     } else if (currentPromptType === 'hypeIndexes') {
@@ -251,12 +251,19 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
   const { runAsync: fetchDefaultPrompts } = useRequest2(
     async () => {
       const prompts = await getDatasetEnhanceDefaultPrompts();
-      setValue('autoIndexesPrompt', prompts.autoIndexesPrompt);
-      setValue('hypeIndexPrompt', prompts.hypeIndexPrompt);
-      setValue('imageIndexPrompt', prompts.imageIndexPrompt || '');
+      // 只在值为空或未定义时才设置默认值
+      if (!getValues('autoIndexesPrompt')) {
+        setValue('autoIndexesPrompt', prompts.autoIndexesPrompt);
+      }
+      if (!getValues('hypeIndexPrompt')) {
+        setValue('hypeIndexPrompt', prompts.hypeIndexPrompt);
+      }
+      if (!getValues('imageIndexPrompt')) {
+        setValue('imageIndexPrompt', prompts.imageIndexPrompt);
+      }
     },
     {
-      manual: false
+      manual: true
     }
   );
 
@@ -270,7 +277,15 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
 
   // 在组件挂载时获取默认提示词
   useEffect(() => {
-    fetchDefaultPrompts();
+    // 检查是否需要获取默认提示词
+    const needsDefaultPrompts =
+      !getValues('autoIndexesPrompt') ||
+      !getValues('hypeIndexPrompt') ||
+      !getValues('imageIndexPrompt');
+
+    if (needsDefaultPrompts) {
+      fetchDefaultPrompts();
+    }
   }, []);
 
   return (
@@ -365,10 +380,10 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                     <MyIcon
                       name={'common/settingLight'}
                       w={'16px'}
-                      cursor={'pointer'}
-                      color={'myGray.500'}
-                      _hover={{ color: 'primary.500' }}
-                      onClick={() => handleOpenConfigPrompt('autoIndexes')}
+                      cursor={feConfigs?.isPlus ? 'pointer' : 'not-allowed'}
+                      color={feConfigs?.isPlus ? 'myGray.500' : 'myGray.300'}
+                      _hover={{ color: feConfigs?.isPlus ? 'primary.500' : 'myGray.300' }}
+                      onClick={() => feConfigs?.isPlus && handleOpenConfigPrompt('autoIndexes')}
                     />
                   </MyTooltip>
                 </HStack>
@@ -387,10 +402,10 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                     <MyIcon
                       name={'common/settingLight'}
                       w={'16px'}
-                      cursor={'pointer'}
-                      color={'myGray.500'}
-                      _hover={{ color: 'primary.500' }}
-                      onClick={() => handleOpenConfigPrompt('hypeIndexes')}
+                      cursor={feConfigs?.isPlus ? 'pointer' : 'not-allowed'}
+                      color={feConfigs?.isPlus ? 'myGray.500' : 'myGray.300'}
+                      _hover={{ color: feConfigs?.isPlus ? 'primary.500' : 'myGray.300' }}
+                      onClick={() => feConfigs?.isPlus && handleOpenConfigPrompt('hypeIndexes')}
                     />
                   </MyTooltip>
                 </HStack>
@@ -417,10 +432,23 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                     <MyIcon
                       name={'common/settingLight'}
                       w={'16px'}
-                      cursor={'pointer'}
-                      color={'myGray.500'}
-                      _hover={{ color: 'primary.500' }}
-                      onClick={() => handleOpenConfigPrompt('imageIndex')}
+                      cursor={
+                        feConfigs?.isPlus && datasetDetail?.vlmModel ? 'pointer' : 'not-allowed'
+                      }
+                      color={
+                        feConfigs?.isPlus && datasetDetail?.vlmModel ? 'myGray.500' : 'myGray.300'
+                      }
+                      _hover={{
+                        color:
+                          feConfigs?.isPlus && datasetDetail?.vlmModel
+                            ? 'primary.500'
+                            : 'myGray.300'
+                      }}
+                      onClick={() =>
+                        feConfigs?.isPlus &&
+                        datasetDetail?.vlmModel &&
+                        handleOpenConfigPrompt('imageIndex')
+                      }
                     />
                   </MyTooltip>
                 </HStack>
@@ -717,7 +745,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                   ? getValues('imageIndexPrompt')
                   : ''
           }
-          onSuccess={handleSavePrompt}
+          onConfirm={handleSavePrompt}
         />
       )}
     </>
