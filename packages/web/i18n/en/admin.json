@@ -627,5 +627,22 @@
   "image_compression_error": "Image compression error occurred.",
   "image_too_large": "The image size is too large.",
   "password_min_length": "Must contain at least 8 characters.",
-  "password_requirement": "Must contain at least 2 of the following: digits, letters, and special characters."
+  "password_requirement": "Must contain at least 2 of the following: digits, letters, and special characters.",
+  "hype_index_params": "Hypothetical Question Index Parameters",
+  "hype_similarity_threshold": "Similarity Threshold",
+  "hype_similarity_threshold_desc": "Threshold for semantic drift detection (range: 0-1, higher values improve quality but reduce quantity, applies when top1 doc is not target doc)",
+  "hype_max_delta_score": "Max Delta Score",
+  "hype_max_delta_score_desc": "Maximum score difference between top1 and target doc (range: 0-1, lower values improve quality but reduce quantity, prevents semantic drift)",
+  "hype_min_delta_score": "Min Delta Score",
+  "hype_min_delta_score_desc": "Minimum score difference between target and next doc (range: 0-1, higher values improve quality but reduce quantity, ensures semantic distinction)",
+  "hype_expect_rank": "Expected Rank",
+  "hype_expect_rank_desc": "Maximum allowed rank for target doc (range: integer >=1, lower values improve quality but reduce quantity, rank starts from 1)",
+  "hype_default_score": "Default Quality Score",
+  "hype_default_score_desc": "Default score when target not retrieved and top1 similarity is low (range: 0-1, higher values indicate better diversity, question will be kept if passed)",
+  "hype_top_k": "Top K",
+  "hype_top_k_desc": "Number of documents to recall (range: integer >=1, higher values provide more comprehensive retrieval but increase computation time)",
+  "hype_rerank": "Enable Rerank",
+  "hype_rerank_desc": "Whether to use rerank model for secondary sorting (improves quality but increases latency, requires rerank model configuration)",
+  "hype_min_rerank_threshold": "Min Rerank Threshold",
+  "hype_min_rerank_threshold_desc": "Minimum score requirement after reranking (range: 0-1, higher values improve quality but reduce quantity, only applies when rerank is enabled)"
 }
