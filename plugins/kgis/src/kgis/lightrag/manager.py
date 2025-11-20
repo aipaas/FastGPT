@@ -321,7 +321,7 @@ class LightRAGManager:
             system_prompt: Optional[str] = None,
             history_messages: Optional[List[Dict[str, Any]]] = None,
             keyword_extraction: bool = False,
-            **kwargs: Any
+            **kwargs: Any,
         ) -> str:
             if history_messages is None:
                 history_messages = []
@@ -331,7 +331,7 @@ class LightRAGManager:
                 system_prompt=system_prompt,
                 history_messages=history_messages,
                 api_key=api_key,
-                base_url=base_url,
+                base_url=base_url + "/v1",
                 **kwargs,
             )
             return str(result)
@@ -339,7 +339,10 @@ class LightRAGManager:
         embedding_func = EmbeddingFunc(
             embedding_dim=1024,
             func=lambda texts: openai_embed(
-                texts, model=embedding_model, base_url=base_url, api_key=api_key, embedding_dim=1024
+                texts,
+                model=embedding_model,
+                base_url=base_url + "/v1",
+                api_key=api_key,
             ),
         )
 

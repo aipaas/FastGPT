@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from starlette.responses import Response as StarletteResponse
 
 from kgis.core.logging import configure_basic_logging
+from kgis.lightrag import document_router as lightrag_document_router
 from kgis.lightrag import router as lightrag_router
 
 # Load environment variables from .env file
@@ -31,6 +32,7 @@ app = FastAPI(
 app.add_middleware(CorrelationIdMiddleware)
 
 app.include_router(lightrag_router)
+app.include_router(lightrag_document_router)
 
 
 @app.middleware("http")
