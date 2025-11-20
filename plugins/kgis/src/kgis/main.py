@@ -1,22 +1,36 @@
 """Main FastAPI application for KGIS with structured logging."""
 
+import os
 import time
-from typing import Any, Dict
+from typing import Any
 
 import structlog
 import uvicorn
 from asgi_correlation_id import CorrelationIdMiddleware
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from starlette.responses import Response as StarletteResponse
 
 from kgis.core.logging import configure_basic_logging
+from kgis.lightrag import router as lightrag_router
 
-configure_basic_logging("INFO", "dev")
+# Load environment variables from .env file
+load_dotenv()
+
+log_level = os.getenv("LOG_LEVEL", "DEBUG")
+environment = os.getenv("ENVIRONMENT", "dev")
+configure_basic_logging(log_level, environment)
 logger = structlog.get_logger()
 
-app = FastAPI(title="KGIS - Knowledge Graph Information System")
+app = FastAPI(
+    title="KGIS - Knowledge Graph Information System",
+    description="FastAPI application for Knowledge Graph Information System with LightRAG instance management",
+    version="1.0.0",
+)
 
 app.add_middleware(CorrelationIdMiddleware)
+
+app.include_router(lightrag_router)
 
 
 @app.middleware("http")
@@ -24,7 +38,6 @@ async def logging_middleware(request: Request, call_next: Any) -> StarletteRespo
     """Middleware to add request context and log request completion."""
     start_time = time.perf_counter()
 
-    # Clear context and bind initial request details
     structlog.contextvars.clear_contextvars()
     client_ip = request.client.host if request.client else "unknown"
     structlog.contextvars.bind_contextvars(
@@ -39,7 +52,6 @@ async def logging_middleware(request: Request, call_next: Any) -> StarletteRespo
 
         process_time = time.perf_counter() - start_time
 
-        # Log the completion of the request
         logger.info(
             "request_completed",
             status_code=response.status_code,
@@ -48,39 +60,19 @@ async def logging_middleware(request: Request, call_next: Any) -> StarletteRespo
         return response
 
     except Exception as e:
-        # Log unhandled exceptions
         logger.exception("request_failed", error=str(e))
         raise e
 
 
-@app.get("/")
-async def root() -> Dict[str, str]:
-    """Root endpoint."""
-    logger.info("root_endpoint_accessed", message="Welcome to KGIS API")
-    return {"message": "Welcome to KGIS - Knowledge Graph Information System"}
-
-
-@app.get("/ping")
-async def ping() -> Dict[str, str]:
-    """Health check endpoint."""
-    # This log will inherit 'path', 'method', etc. automatically
-    logger.info("health_check_performed", status="healthy")
-    return {"ping": "pong"}
-
-
-@app.get("/health")
-async def health() -> Dict[str, str]:
-    """Detailed health check endpoint."""
-    logger.info("detailed_health_check", status="healthy")
-    return {"status": "healthy", "service": "KGIS", "version": "0.1.0"}
-
-
 if __name__ == "__main__":
-    # 4. CRITICAL: Disable Uvicorn's config so ours takes precedence
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    reload = os.getenv("RELOAD", "true").lower() == "true"
+
     uvicorn.run(
         "kgis.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
+        host=host,
+        port=port,
+        reload=reload,
         log_config=None,
     )
