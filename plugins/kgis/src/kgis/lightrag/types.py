@@ -194,7 +194,7 @@ def format_datetime(dt: Any) -> Optional[str]:
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         # Return ISO format string with timezone information
-        return dt.isoformat()   # type: ignore
+        return dt.isoformat()  # type: ignore
 
     # For any other type, try to convert to string, but this may return None
     # if conversion fails or results in unexpected format
@@ -228,3 +228,30 @@ class TrackStatusResponse(BaseModel):
     documents: List[DocStatusResponse] = Field(description="List of documents associated with this track_id")
     total_count: int = Field(description="Total number of documents for this track_id")
     status_summary: Dict[str, int] = Field(description="Count of documents by status")
+
+
+# Document deletion
+
+
+class DeleteDocumentRequest(BaseModel):
+    """Request model for deleting a document from LightRAG."""
+
+    workspace_id: str
+    llm_model: str
+    embedding_model: str
+    rerank_model: Optional[str] = None
+
+    # Document deletion parameters
+    doc_id: str
+    delete_llm_cache: bool = False
+
+
+class DeleteDocumentResponse(BaseModel):
+    """Response model for document deletion operation."""
+
+    success: bool
+    message: str
+    doc_id: str
+    status: str
+    file_path: Optional[str] = None
+    processing_time_ms: Optional[float] = None

@@ -2,12 +2,15 @@
 
 import time
 import traceback
+from typing import Optional
 
 import structlog
 from fastapi import APIRouter, HTTPException, status
 
 from kgis.lightrag.manager import LightRAGInstance, get_manager
 from kgis.lightrag.types import (
+    DeleteDocumentRequest,
+    DeleteDocumentResponse,
     DocStatusResponse,
     InsertDocumentsRequest,
     InsertDocumentsResponse,
@@ -21,34 +24,39 @@ logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/api/lightrag/documents", tags=["documents"])
 
 
-async def _get_or_create_instance(request: InsertDocumentsRequest) -> LightRAGInstance:
-    """Get or create LightRAG instance based on request."""
+async def _get_or_create_instance_by_params(
+    workspace_id: str,
+    llm_model: str,
+    embedding_model: str,
+    rerank_model: Optional[str] = None,
+) -> LightRAGInstance:
+    """Get or create LightRAG instance by parameters."""
     manager = await get_manager()
 
     # Try to find existing instance first
     instance = await manager.find_instance(
-        workspace_id=request.workspace_id,
-        llm_model=request.llm_model,
-        embedding_model=request.embedding_model,
-        rerank_model=request.rerank_model,
+        workspace_id=workspace_id,
+        llm_model=llm_model,
+        embedding_model=embedding_model,
+        rerank_model=rerank_model,
     )
 
     if instance is None:
         # Create new instance if not found
         logger.info(
             "instance_not_found_creating_new",
-            workspace_id=request.workspace_id,
-            llm_model=request.llm_model,
-            embedding_model=request.embedding_model,
+            workspace_id=workspace_id,
+            llm_model=llm_model,
+            embedding_model=embedding_model,
         )
 
         from kgis.lightrag.types import CreateInstanceRequest
 
         create_request = CreateInstanceRequest(
-            workspace_id=request.workspace_id,
-            llm_model=request.llm_model,
-            embedding_model=request.embedding_model,
-            rerank_model=request.rerank_model,
+            workspace_id=workspace_id,
+            llm_model=llm_model,
+            embedding_model=embedding_model,
+            rerank_model=rerank_model,
         )
 
         instance_id = await manager.create_instance(create_request)
@@ -61,6 +69,16 @@ async def _get_or_create_instance(request: InsertDocumentsRequest) -> LightRAGIn
             )
 
     return instance
+
+
+async def _get_or_create_instance(request: InsertDocumentsRequest) -> LightRAGInstance:
+    """Get or create LightRAG instance based on insert request."""
+    return await _get_or_create_instance_by_params(
+        workspace_id=request.workspace_id,
+        llm_model=request.llm_model,
+        embedding_model=request.embedding_model,
+        rerank_model=request.rerank_model,
+    )
 
 
 @router.post("/insert", status_code=status.HTTP_200_OK)
@@ -207,3 +225,79 @@ async def get_insertion_status(request: InsertionStatusRequest) -> TrackStatusRe
         logger.error(f"Error getting track status for {request.track_id}: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/delete", status_code=status.HTTP_200_OK)
+async def delete_document(request: DeleteDocumentRequest) -> DeleteDocumentResponse:
+    """Delete a document from LightRAG."""
+    start_time = time.time()
+
+    try:
+        # Get or create instance
+        instance = await _get_or_create_instance_by_params(
+            workspace_id=request.workspace_id,
+            llm_model=request.llm_model,
+            embedding_model=request.embedding_model,
+            rerank_model=request.rerank_model,
+        )
+
+        # Acquire instance
+        await instance.acquire()
+
+        try:
+            logger.info(
+                "delete_document_start",
+                instance_id=instance.instance_id,
+                workspace_id=request.workspace_id,
+                doc_id=request.doc_id,
+                delete_llm_cache=request.delete_llm_cache,
+            )
+
+            # Perform deletion using LightRAG's adelete_by_doc_id method
+            deletion_result = await instance.lightrag.adelete_by_doc_id(
+                doc_id=request.doc_id, delete_llm_cache=request.delete_llm_cache
+            )
+
+            processing_time = (time.time() - start_time) * 1000
+
+            # Map LightRAG deletion result to our response format
+            success = deletion_result.status == "success"
+            response_status = deletion_result.status
+            file_path = getattr(deletion_result, "file_path", None)
+
+            logger.info(
+                "delete_document_success",
+                instance_id=instance.instance_id,
+                workspace_id=request.workspace_id,
+                doc_id=request.doc_id,
+                status=response_status,
+                processing_time_ms=round(processing_time, 2),
+            )
+
+            return DeleteDocumentResponse(
+                success=success,
+                message=deletion_result.message,
+                doc_id=request.doc_id,
+                status=response_status,
+                file_path=file_path,
+                processing_time_ms=round(processing_time, 2),
+            )
+
+        finally:
+            # Always release instance
+            await instance.release()
+
+    except Exception as e:
+        processing_time = (time.time() - start_time) * 1000
+        logger.error(
+            "delete_document_error",
+            workspace_id=request.workspace_id,
+            doc_id=request.doc_id,
+            error=str(e),
+            processing_time_ms=round(processing_time, 2),
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete document: {str(e)}",
+        )
