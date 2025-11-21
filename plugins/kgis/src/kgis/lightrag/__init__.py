@@ -1,9 +1,7 @@
 """LightRAG instance management module for KGIS."""
 
 from kgis.lightrag.document_routes import router as document_router
-from kgis.lightrag.manager import LightRAGManager, get_manager
-from kgis.lightrag.routes import router
-from kgis.lightrag.types import (
+from kgis.lightrag.lightrag_types import (
     CreateInstanceRequest,
     CreateInstanceResponse,
     DeleteInstanceResponse,
@@ -20,6 +18,8 @@ from kgis.lightrag.types import (
     ListInstancesResponse,
     StorageConfig,
 )
+from kgis.lightrag.manager import LightRAGManager, get_manager
+from kgis.lightrag.routes import router
 
 __all__ = [
     "LightRAGManager",

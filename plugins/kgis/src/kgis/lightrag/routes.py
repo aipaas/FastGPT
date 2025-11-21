@@ -6,8 +6,7 @@ from typing import Any, Dict, List
 import structlog
 from fastapi import APIRouter, HTTPException, status
 
-from kgis.lightrag.manager import get_manager
-from kgis.lightrag.types import (
+from kgis.lightrag.lightrag_types import (
     CreateInstanceRequest,
     CreateInstanceResponse,
     DeleteInstanceResponse,
@@ -16,6 +15,7 @@ from kgis.lightrag.types import (
     FindInstanceResponse,
     ListInstancesResponse,
 )
+from kgis.lightrag.manager import get_manager
 
 logger = structlog.get_logger(__name__)
 

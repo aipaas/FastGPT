@@ -18,7 +18,7 @@ from lightrag.llm.openai import openai_complete_if_cache, openai_embed
 from lightrag.rerank import ali_rerank
 from lightrag.utils import EmbeddingFunc
 
-from kgis.lightrag.types import (
+from kgis.lightrag.lightrag_types import (
     CreateInstanceRequest,
     InstanceConfig,
     InstanceInfo,
@@ -382,6 +382,7 @@ class LightRAGManager:
             graph_storage=graph_storage,
             vector_storage=vector_storage,
             doc_status_storage=docs_status_storage,
+            addon_params=config.addon_params or {},
         )
         await rag.initialize_storages()
         await initialize_pipeline_status()
