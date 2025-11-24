@@ -19,7 +19,7 @@ from kgis.lightrag import router as lightrag_router
 load_dotenv()
 
 log_level = os.getenv("LOG_LEVEL", "DEBUG")
-environment = os.getenv("ENVIRONMENT", "dev")
+environment = os.getenv("LOG_FORMAT", "dev")
 configure_basic_logging(log_level, environment)
 logger = structlog.get_logger()
 
@@ -33,6 +33,12 @@ app.add_middleware(CorrelationIdMiddleware)
 
 app.include_router(lightrag_router)
 app.include_router(lightrag_document_router)
+
+
+@app.get("/health")
+async def health_check() -> dict[str, str]:
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "kgis", "version": "0.1.0"}
 
 
 @app.middleware("http")
