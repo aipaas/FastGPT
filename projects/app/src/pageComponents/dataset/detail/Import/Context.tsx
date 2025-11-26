@@ -55,6 +55,7 @@ export const defaultFormData: ImportFormType = {
   imageIndex: false,
   autoIndexes: false,
   hypeIndexes: false,
+  kgIndexes: false,
   indexPrefixTitle: false,
 
   autoIndexesPrompt: '',

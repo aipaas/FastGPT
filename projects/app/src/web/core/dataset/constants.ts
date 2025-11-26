@@ -94,6 +94,10 @@ export const TrainingProcess = {
     label: i18nT('dataset:process.Vectorizing'),
     value: 'vectorizing'
   },
+  kgIndex: {
+    label: i18nT('dataset:process.KG_Index'),
+    value: 'kgIndex'
+  },
   isReady: {
     label: i18nT('dataset:process.Is_Ready'),
     value: 'isReady'

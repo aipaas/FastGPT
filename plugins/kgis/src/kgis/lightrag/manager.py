@@ -18,6 +18,7 @@ from lightrag.llm.openai import openai_complete_if_cache, openai_embed
 from lightrag.rerank import ali_rerank
 from lightrag.utils import EmbeddingFunc
 
+from kgis.lightrag.get_embedding_dimension import get_embedding_dimension
 from kgis.lightrag.lightrag_types import (
     CreateInstanceRequest,
     InstanceConfig,
@@ -337,7 +338,11 @@ class LightRAGManager:
             return str(result)
 
         embedding_func = EmbeddingFunc(
-            embedding_dim=1024,
+            embedding_dim=get_embedding_dimension(  # TODO: 实现动态获取嵌入模型的维度，结合缓存
+                model=embedding_model,
+                api_url=base_url + "/v1/embeddings",
+                token=api_key,
+            ),
             func=lambda texts: openai_embed(
                 texts,
                 model=embedding_model,
@@ -363,14 +368,21 @@ class LightRAGManager:
         graph_storage = (
             config.storage_configs.graph_storage or "Neo4JStorage" if config.storage_configs else "Neo4JStorage"
         )
-        vector_storage = (
-            config.storage_configs.vector_storage or "PGVectorStorage" if config.storage_configs else "PGVectorStorage"
-        )
+        # vector_storage = (
+        #     config.storage_configs.vector_storage or "PGVectorStorage" if
+        #     config.storage_configs else "PGVectorStorage"
+        # )
         docs_status_storage = (
             config.storage_configs.doc_status_storage or "MongoDocStatusStorage"
             if config.storage_configs
             else "MongoDocStatusStorage"
         )
+
+        if config.addon_params is not None:  # TODO: 支持其它多语言配置
+            if "language" not in config.addon_params:
+                config.addon_params["language"] = "Chinese"
+        if config.addon_params is None:
+            config.addon_params = {"language": "Chinese"}
 
         rag = LightRAG(
             working_dir=working_dir,
@@ -380,7 +392,7 @@ class LightRAGManager:
             rerank_model_func=rerank_model_func,
             kv_storage=kv_storage,
             graph_storage=graph_storage,
-            vector_storage=vector_storage,
+            # vector_storage=vector_storage, # TODO: pgvector 同一张表不支持多维度设置，与FasgGPT对接冲突
             doc_status_storage=docs_status_storage,
             addon_params=config.addon_params or {},
         )

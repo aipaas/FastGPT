@@ -185,6 +185,19 @@ const ProgressView = ({ trainingDetail }: { trainingDetail: getTrainingDetailRes
           errorCount: trainingDetail.errorCounts.chunk
         })
       },
+      // kg
+      ...(trainingDetail?.advancedTraining.kgIndexes
+        ? [
+            {
+              errorCount: trainingDetail.errorCounts.kg,
+              label: t(TrainingProcess.kgIndex.label),
+              statusText: getStatusText(TrainingModeEnum.kg),
+              status: getTrainingStatus({
+                errorCount: trainingDetail.errorCounts.kg
+              })
+            }
+          ]
+        : []),
       // hype
       // ...(trainingDetail?.advancedTraining.hypeIndexes
       //   ? [
@@ -217,6 +230,7 @@ const ProgressView = ({ trainingDetail }: { trainingDetail: getTrainingDetailRes
     trainingDetail.errorCounts,
     trainingDetail?.advancedTraining.imageIndex,
     trainingDetail?.advancedTraining.autoIndexes,
+    trainingDetail?.advancedTraining.kgIndexes,
     trainingDetail.trainedCount,
     isDatabaseParse,
     t,
@@ -336,7 +350,8 @@ const ErrorView = ({
     [TrainingModeEnum.auto]: t('dataset:process.Auto_Index'),
     [TrainingModeEnum.hype]: t('dataset:process.Hype_Index'),
     [TrainingModeEnum.databaseSchema]: t('dataset:process.databaseSchema'),
-    [TrainingModeEnum.small2Big]: t('dataset:process.segment_enhanced_index')
+    [TrainingModeEnum.small2Big]: t('dataset:process.segment_enhanced_index'),
+    [TrainingModeEnum.kg]: t('dataset:process.KG_Index')
   };
 
   const [editChunk, setEditChunk] = useState<getTrainingDataDetailResponse>();

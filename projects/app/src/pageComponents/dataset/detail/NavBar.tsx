@@ -37,57 +37,84 @@ const NavBar = ({ currentTab }: { currentTab: TabEnum }) => {
       vectorTrainingCount = 0,
       qaTrainingCount = 0,
       autoTrainingCount = 0,
-      imageTrainingCount = 0
+      imageTrainingCount = 0,
+      kgTrainingCount = 0
     } = {}
   } = useRequest2(getTrainingQueueLen, {
     manual: false,
     retryInterval: 10000
   });
-  const { vectorTrainingMap, qaTrainingMap, autoTrainingMap, imageTrainingMap } = useMemo(() => {
-    const vectorTrainingMap = (() => {
-      if (vectorTrainingCount < 1000)
+  const { vectorTrainingMap, qaTrainingMap, autoTrainingMap, imageTrainingMap, kgTrainingMap } =
+    useMemo(() => {
+      const vectorTrainingMap = (() => {
+        if (vectorTrainingCount < 1000)
+          return {
+            colorSchema: 'green',
+            tip: t('common:core.dataset.training.Leisure')
+          };
+        if (vectorTrainingCount < 20000)
+          return {
+            colorSchema: 'yellow',
+            tip: t('common:core.dataset.training.Waiting')
+          };
         return {
-          colorSchema: 'green',
-          tip: t('common:core.dataset.training.Leisure')
+          colorSchema: 'red',
+          tip: t('common:core.dataset.training.Full')
         };
-      if (vectorTrainingCount < 20000)
-        return {
-          colorSchema: 'yellow',
-          tip: t('common:core.dataset.training.Waiting')
-        };
-      return {
-        colorSchema: 'red',
-        tip: t('common:core.dataset.training.Full')
-      };
-    })();
+      })();
 
-    const countLLMMap = (count: number) => {
-      if (count < 100)
+      const countLLMMap = (count: number) => {
+        if (count < 100)
+          return {
+            colorSchema: 'green',
+            tip: t('common:core.dataset.training.Leisure')
+          };
+        if (count < 1000)
+          return {
+            colorSchema: 'yellow',
+            tip: t('common:core.dataset.training.Waiting')
+          };
         return {
-          colorSchema: 'green',
-          tip: t('common:core.dataset.training.Leisure')
+          colorSchema: 'red',
+          tip: t('common:core.dataset.training.Full')
         };
-      if (count < 1000)
-        return {
-          colorSchema: 'yellow',
-          tip: t('common:core.dataset.training.Waiting')
-        };
-      return {
-        colorSchema: 'red',
-        tip: t('common:core.dataset.training.Full')
       };
-    };
-    const qaTrainingMap = countLLMMap(qaTrainingCount);
-    const autoTrainingMap = countLLMMap(autoTrainingCount);
-    const imageTrainingMap = countLLMMap(imageTrainingCount);
+      const qaTrainingMap = countLLMMap(qaTrainingCount);
+      const autoTrainingMap = countLLMMap(autoTrainingCount);
+      const imageTrainingMap = countLLMMap(imageTrainingCount);
 
-    return {
-      vectorTrainingMap,
-      qaTrainingMap,
-      autoTrainingMap,
-      imageTrainingMap
-    };
-  }, [qaTrainingCount, autoTrainingCount, imageTrainingCount, vectorTrainingCount, t]);
+      const kgTrainingMap = ((count: number) => {
+        if (count < 50)
+          return {
+            colorSchema: 'green',
+            tip: t('common:core.dataset.training.Leisure')
+          };
+        if (count < 500)
+          return {
+            colorSchema: 'yellow',
+            tip: t('common:core.dataset.training.Waiting')
+          };
+        return {
+          colorSchema: 'red',
+          tip: t('common:core.dataset.training.Full')
+        };
+      })(kgTrainingCount);
+
+      return {
+        vectorTrainingMap,
+        qaTrainingMap,
+        autoTrainingMap,
+        imageTrainingMap,
+        kgTrainingMap
+      };
+    }, [
+      qaTrainingCount,
+      autoTrainingCount,
+      imageTrainingCount,
+      vectorTrainingCount,
+      kgTrainingCount,
+      t
+    ]);
 
   const tabList = [
     {
@@ -267,6 +294,19 @@ const NavBar = ({ currentTab }: { currentTab: TabEnum }) => {
                       value={100}
                       size={'xs'}
                       colorScheme={imageTrainingMap.colorSchema}
+                      borderRadius={'md'}
+                      isAnimated
+                      hasStripe
+                    />
+                  </Box>
+                  <Box mb={3}>
+                    <Box fontSize={'sm'} pb={1}>
+                      {t('dataset:kg_training_queue')} ({kgTrainingMap.tip})
+                    </Box>
+                    <Progress
+                      value={100}
+                      size={'xs'}
+                      colorScheme={kgTrainingMap.colorSchema}
                       borderRadius={'md'}
                       isAnimated
                       hasStripe
