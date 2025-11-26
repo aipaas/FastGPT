@@ -134,6 +134,7 @@ export type SystemEnvType = {
   qaMaxProcess: number;
   vlmMaxProcess: number;
   tokenWorkers: number; // token count max worker
+  kgMaxProcess: number; // knowledge graph max worker
 
   hnswEfSearch: number;
   hnswMaxScanTuples: number;

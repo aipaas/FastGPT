@@ -18,7 +18,7 @@ from kgis.lightrag import router as lightrag_router
 # Load environment variables from .env file
 load_dotenv()
 
-log_level = os.getenv("LOG_LEVEL", "DEBUG")
+log_level = os.getenv("LOG_LEVEL", "INFO")
 environment = os.getenv("LOG_FORMAT", "dev")
 configure_basic_logging(log_level, environment)
 logger = structlog.get_logger()

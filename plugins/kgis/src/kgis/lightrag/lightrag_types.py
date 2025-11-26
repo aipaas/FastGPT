@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union
 
+from lightrag.base import DocStatus
 from pydantic import BaseModel, Field
 
 
@@ -124,7 +125,7 @@ class BaseLightRAGRequest(BaseModel):
     llm_model: str = Field(description="LLM model name")
     embedding_model: str = Field(description="Embedding model name")
     rerank_model: Optional[str] = Field(default=None, description="Rerank model name")
-    timeout: Optional[int] = Field(ge=1, le=300, default=30, description="Request timeout in seconds")
+    timeout: Optional[int] = Field(ge=1, le=7200, default=3600, description="Request timeout in seconds")
 
 
 class QueryParamOverrides(BaseModel):
@@ -171,9 +172,6 @@ class EnhancedPaginationParams(BaseModel):
 class InsertDocumentsRequest(BaseLightRAGRequest):
     """Request model for inserting documents into LightRAG."""
 
-    # BaseLightRAGRequest provides: workspace_id, llm_model, embedding_model, rerank_model, timeout_seconds
-
-    # Document insertion parameters
     input: Union[str, List[str]]
     split_by_character: Optional[str] = None
     split_by_character_only: bool = False
@@ -192,17 +190,6 @@ class InsertDocumentsResponse(BaseModel):
     processing_time_ms: Optional[float] = None
 
 
-# Document status enums from LightRAG
-class DocStatus(str, Enum):
-    """Document processing status enumeration from LightRAG."""
-
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
-
-
 class DocumentInsertionStatus(str, Enum):
     """Status enumeration for document insertion operations."""
 
@@ -215,8 +202,6 @@ class DocumentInsertionStatus(str, Enum):
 
 class InsertionStatusRequest(BaseLightRAGRequest):
     """Request model for querying insertion status."""
-
-    # BaseLightRAGRequest provides: workspace_id, llm_model, embedding_model, rerank_model, timeout_seconds
 
     # Query parameters
     track_id: str
@@ -282,8 +267,6 @@ class TrackStatusResponse(BaseModel):
 
 class DeleteDocumentRequest(BaseLightRAGRequest):
     """Request model for deleting a document from LightRAG."""
-
-    # BaseLightRAGRequest provides: workspace_id, llm_model, embedding_model, rerank_model, timeout_seconds
 
     # Document deletion parameters
     doc_id: str
@@ -384,3 +367,32 @@ class DataRetrievalResponse(BaseModel):
     # Performance info
     processing_time_ms: Optional[float] = None
     timeout_hit: bool = False
+
+
+# Query with LLM generation
+
+
+class QueryWithLLMRequest(DataRetrievalRequest):
+    """Request model for querying LightRAG with LLM generation (aquery_llm)."""
+
+    # Additional parameter for LLM generation
+    system_prompt: Optional[str] = Field(default=None, description="Custom system prompt for LLM generation")
+
+
+class QueryWithLLMResponse(BaseModel):
+    """Response model for querying LightRAG with LLM generation."""
+
+    # Direct response from aquery_llm
+    data: Dict[str, Any] = Field(description="Raw response data from aquery_llm method")
+
+    # Request metadata
+    query: str = Field(description="Original query text")
+    mode: str = Field(description="Query mode used")
+
+    # Performance info
+    processing_time_ms: Optional[float] = Field(default=None, description="Processing time in milliseconds")
+    timeout_hit: bool = Field(default=False, description="Whether the query timed out")
+
+    # Optional error info
+    success: bool = Field(default=True, description="Whether the query was successful")
+    error_message: Optional[str] = Field(default=None, description="Error message if query failed")

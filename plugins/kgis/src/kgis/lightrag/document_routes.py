@@ -7,7 +7,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 from fastapi import APIRouter, HTTPException, status
-from lightrag.base import QueryParam
+from lightrag.base import (
+    DEFAULT_CHUNK_TOP_K,
+    DEFAULT_MAX_ENTITY_TOKENS,
+    DEFAULT_MAX_RELATION_TOKENS,
+    DEFAULT_MAX_TOTAL_TOKENS,
+    DEFAULT_TOP_K,
+    QueryParam,
+)
 
 from kgis.lightrag.lightrag_types import (
     DataRetrievalRequest,
@@ -19,6 +26,8 @@ from kgis.lightrag.lightrag_types import (
     InsertDocumentsResponse,
     InsertionStatusRequest,
     PaginationInfo,
+    QueryWithLLMRequest,
+    QueryWithLLMResponse,
     TrackStatusResponse,
     format_datetime,
 )
@@ -260,30 +269,80 @@ async def delete_document(request: DeleteDocumentRequest) -> DeleteDocumentRespo
                 delete_llm_cache=request.delete_llm_cache,
             )
 
-            # Perform deletion using LightRAG's adelete_by_doc_id method
-            deletion_result = await instance.lightrag.adelete_by_doc_id(
-                doc_id=request.doc_id, delete_llm_cache=request.delete_llm_cache
-            )
+            track_id = request.doc_id.strip()
+
+            if not track_id:
+                raise ValueError("Document ID cannot be empty")
+
+            docs_by_track_id = await instance.lightrag.aget_docs_by_track_id(track_id)
+
+            if not docs_by_track_id:
+                processing_time = (time.time() - start_time) * 1000
+                return DeleteDocumentResponse(
+                    success=False,
+                    message=f"No documents found with track_id: {track_id}",
+                    doc_id=request.doc_id,
+                    status="not_found",
+                    file_path=None,
+                    processing_time_ms=round(processing_time, 2),
+                )
+
+            successful_deletions = []
+            failed_deletions = []
+            last_result = None
+
+            for document_id, _ in docs_by_track_id.items():
+                try:
+                    deletion_result = await instance.lightrag.adelete_by_doc_id(
+                        doc_id=document_id, delete_llm_cache=request.delete_llm_cache
+                    )
+                    last_result = deletion_result
+
+                    if deletion_result.status == "success":
+                        successful_deletions.append(document_id)
+                    else:
+                        failed_deletions.append((document_id, deletion_result.status))
+
+                except Exception as e:
+                    failed_deletions.append((document_id, f"deletion_failed: {str(e)}"))
+                    logger.warning(
+                        "document_deletion_failed",
+                        instance_id=instance.instance_id,
+                        document_id=document_id,
+                        error=str(e),
+                    )
 
             processing_time = (time.time() - start_time) * 1000
 
-            # Map LightRAG deletion result to our response format
-            success = deletion_result.status == "success"
-            response_status = deletion_result.status
-            file_path = getattr(deletion_result, "file_path", None)
+            total_docs = len(docs_by_track_id)
+            success = len(successful_deletions) == total_docs
+            response_status = "success" if success else "partial_failure" if successful_deletions else "failure"
+            file_path = getattr(last_result, "file_path", None) if last_result else None
 
             logger.info(
-                "delete_document_success",
+                "delete_document_complete",
                 instance_id=instance.instance_id,
                 workspace_id=request.workspace_id,
                 doc_id=request.doc_id,
                 status=response_status,
+                total_documents=total_docs,
+                successful_deletions=len(successful_deletions),
+                failed_deletions=len(failed_deletions),
                 processing_time_ms=round(processing_time, 2),
             )
 
+            if success:
+                message = f"Successfully deleted {total_docs} document(s)"
+            elif successful_deletions:
+                message = (
+                    f"Partially deleted: {len(successful_deletions)} of {total_docs} documents deleted successfully"
+                )
+            else:
+                message = f"Failed to delete any of the {total_docs} document(s)"
+
             return DeleteDocumentResponse(
                 success=success,
-                message=deletion_result.message,
+                message=message,
                 doc_id=request.doc_id,
                 status=response_status,
                 file_path=file_path,
@@ -346,27 +405,25 @@ async def retrieve_data(request: DataRetrievalRequest) -> DataRetrievalResponse:
             # Create QueryParam from request with all fields
             query_param = QueryParam(
                 mode=request.mode,
-                response_type=request.response_type,
-                stream=request.stream or False,  # Default to False for data retrieval
-                only_need_context=request.only_need_context
-                if request.only_need_context is not None
-                else True,  # Data retrieval mode
-                only_need_prompt=request.only_need_prompt or False,
-                top_k=request.top_k,
-                chunk_top_k=request.chunk_top_k,
-                # max_entity_tokens=request.max_entity_tokens,
-                # max_relation_tokens=request.max_relation_tokens,
-                # max_total_tokens=request.max_total_tokens,
+                response_type=request.response_type or "Multiple Paragraphs",
+                stream=False,
+                only_need_context=True,
+                only_need_prompt=False,
+                top_k=request.top_k or DEFAULT_TOP_K,
+                chunk_top_k=request.chunk_top_k or DEFAULT_CHUNK_TOP_K,
+                max_entity_tokens=request.max_entity_tokens or DEFAULT_MAX_ENTITY_TOKENS,
+                max_relation_tokens=request.max_relation_tokens or DEFAULT_MAX_RELATION_TOKENS,
+                max_total_tokens=request.max_total_tokens or DEFAULT_MAX_TOTAL_TOKENS,
                 hl_keywords=request.hl_keywords,
                 ll_keywords=request.ll_keywords,
                 conversation_history=request.conversation_history or [],
                 user_prompt=request.user_prompt,
-                enable_rerank=request.enable_rerank,
+                enable_rerank=request.enable_rerank or True,
                 include_references=request.include_references or False,
             )
 
             # Execute with timeout
-            timeout = request.timeout or 30
+            timeout = request.timeout or 60
             try:
                 result = await asyncio.wait_for(
                     instance.lightrag.aquery_data(request.query.strip(), param=query_param), timeout=timeout
@@ -641,3 +698,136 @@ def _apply_sorting(items: List[Dict[str, Any]], sort_by: str, sort_direction: st
         # If sorting fails, return original items
         logger.warning("sorting_failed", sort_by=sort_by, sort_direction=sort_direction, items_count=len(items))
         return items
+
+
+@router.post("/query", status_code=status.HTTP_200_OK)
+async def query_with_llm(request: QueryWithLLMRequest) -> QueryWithLLMResponse:
+    """Query LightRAG with LLM generation using aquery_llm method."""
+    start_time = time.time()
+
+    try:
+        if not request.query or not request.query.strip():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Query text cannot be empty")
+
+        instance = await _get_or_create_instance_by_params(
+            workspace_id=request.workspace_id,
+            llm_model=request.llm_model,
+            embedding_model=request.embedding_model,
+            rerank_model=request.rerank_model,
+        )
+
+        await instance.acquire()
+
+        try:
+            logger.info(
+                "query_with_llm_start",
+                instance_id=instance.instance_id,
+                workspace_id=request.workspace_id,
+                query=request.query[:100] + "..." if len(request.query) > 100 else request.query,
+                mode=request.mode,
+                system_prompt_provided=request.system_prompt is not None,
+                timeout_seconds=request.timeout,
+            )
+
+            query_param = QueryParam(
+                mode=request.mode,
+                response_type=request.response_type or "Multiple Paragraphs",
+                stream=request.stream or False,
+                only_need_context=request.only_need_context or False,
+                only_need_prompt=request.only_need_prompt or False,
+                top_k=request.top_k or DEFAULT_TOP_K,
+                chunk_top_k=request.chunk_top_k or DEFAULT_CHUNK_TOP_K,
+                max_entity_tokens=request.max_entity_tokens or DEFAULT_MAX_ENTITY_TOKENS,
+                max_relation_tokens=request.max_relation_tokens or DEFAULT_MAX_RELATION_TOKENS,
+                max_total_tokens=request.max_total_tokens or DEFAULT_MAX_TOTAL_TOKENS,
+                hl_keywords=request.hl_keywords,
+                ll_keywords=request.ll_keywords,
+                conversation_history=request.conversation_history or [],
+                user_prompt=request.user_prompt,
+                enable_rerank=request.enable_rerank or True,
+                include_references=request.include_references or False,
+            )
+
+            # Execute with timeout using aquery_llm
+            timeout = request.timeout or 60
+            timeout_hit = False
+            try:
+                result = await asyncio.wait_for(
+                    instance.lightrag.aquery_llm(
+                        request.query.strip(), param=query_param, system_prompt=request.system_prompt
+                    ),
+                    timeout=timeout,
+                )
+                logger.debug("query_with_llm_origin_result", result=result)
+
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "query_with_llm_timeout",
+                    instance_id=instance.instance_id,
+                    workspace_id=request.workspace_id,
+                    timeout_seconds=timeout,
+                )
+                timeout_hit = True
+                result = {
+                    "status": "failure",
+                    "message": f"Query timed out after {timeout} seconds",
+                    "data": {},
+                    "metadata": {
+                        "failure_reason": "timeout",
+                        "mode": request.mode,
+                        "timeout_seconds": timeout,
+                    },
+                }
+
+            processing_time = (time.time() - start_time) * 1000
+
+            logger.info(
+                "query_with_llm_success",
+                instance_id=instance.instance_id,
+                workspace_id=request.workspace_id,
+                processing_time_ms=round(processing_time, 2),
+                timeout_hit=timeout_hit,
+            )
+
+            # Return direct response from aquery_llm
+            return QueryWithLLMResponse(
+                data=result,
+                query=request.query,
+                mode=request.mode,
+                processing_time_ms=round(processing_time, 2),
+                timeout_hit=timeout_hit,
+                success=not timeout_hit,
+            )
+
+        finally:
+            # Always release instance
+            await instance.release()
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        processing_time = (time.time() - start_time) * 1000
+        logger.error(
+            "query_with_llm_error",
+            workspace_id=request.workspace_id,
+            query=request.query[:100] + "..." if len(request.query) > 100 else request.query,
+            error=str(e),
+            processing_time_ms=round(processing_time, 2),
+        )
+        logger.error(traceback.format_exc())
+
+        # Return error response
+        return QueryWithLLMResponse(
+            data={
+                "status": "failure",
+                "message": f"Internal server error: {str(e)}",
+                "data": {},
+            },
+            query=request.query,
+            mode=request.mode,
+            processing_time_ms=round(processing_time, 2),
+            timeout_hit=False,
+            success=False,
+            error_message=str(e),
+        )

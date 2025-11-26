@@ -26,9 +26,9 @@ import type { ParentIdType } from 'common/parentFolder/type';
 import type { CollectionStatusEnum } from 'core/dataset/collection/schema';
 import type { SplitProps } from '@fastgpt/global/common/string/textSplitter';
 
-export type small2bigConfigType =  Omit<SplitProps,'text'> & {
+export type small2bigConfigType = Omit<SplitProps, 'text'> & {
   maxChildChunks?: number;
-}
+};
 export type ChunkSettingsType = {
   trainingType?: DatasetCollectionDataProcessModeEnum;
 
@@ -49,6 +49,8 @@ export type ChunkSettingsType = {
   small2bigConfig?: small2bigConfigType;
   autoIndexesPrompt?: string;
   imageIndexPrompt?: string;
+  // Index knowledge graph
+  kgIndexes?: boolean;
   // Chunk setting
   chunkSettingMode?: ChunkSettingModeEnum; // 系统参数/自定义参数
   chunkSplitMode?: DataChunkSplitModeEnum;
@@ -268,6 +270,7 @@ export type DatasetTrainingSchemaType = {
   dataMetadata?: Record<string, any>;
   retryCount: number;
   errorMsg?: string;
+  chunks?: string[];
 };
 
 export type CollectionWithDatasetType = DatasetCollectionSchemaType & {

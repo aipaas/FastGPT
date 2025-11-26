@@ -22,6 +22,7 @@ export type getTrainingDetailResponse = {
     autoIndexes: boolean;
     hypeIndexes: boolean;
     small2bigIndexes: boolean;
+    kgIndexes: boolean;
   };
   queuedCounts: Record<TrainingModeEnum, number>;
   trainingCounts: Record<TrainingModeEnum, number>;
@@ -38,7 +39,8 @@ const defaultCounts: Record<TrainingModeEnum, number> = {
   imageParse: 0,
   databaseSchema: 0,
   hype: 0,
-  small2Big: 0
+  small2Big: 0,
+  kg: 0
 };
 
 async function handler(
@@ -167,7 +169,8 @@ async function handler(
       imageIndex: !!collection.imageIndex,
       autoIndexes: !!collection.autoIndexes,
       hypeIndexes: !!collection.hypeIndexes,
-      small2bigIndexes: !!collection.small2bigIndexes
+      small2bigIndexes: !!collection.small2bigIndexes,
+      kgIndexes: !!collection.kgIndexes
     },
 
     queuedCounts,

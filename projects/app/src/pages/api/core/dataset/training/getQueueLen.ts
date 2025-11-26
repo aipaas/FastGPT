@@ -10,6 +10,7 @@ export type GetQueueLenResponse = {
   qaTrainingCount: number;
   autoTrainingCount: number;
   imageTrainingCount: number;
+  kgTrainingCount: number;
 };
 
 async function handler(req: NextApiRequest) {
@@ -39,12 +40,14 @@ async function handler(req: NextApiRequest) {
   const qaTrainingCount = data.find((item) => item._id === TrainingModeEnum.qa)?.count || 0;
   const autoTrainingCount = data.find((item) => item._id === TrainingModeEnum.auto)?.count || 0;
   const imageTrainingCount = data.find((item) => item._id === TrainingModeEnum.image)?.count || 0;
+  const kgTrainingCount = data.find((item) => item._id === TrainingModeEnum.kg)?.count || 0;
 
   return {
     vectorTrainingCount,
     qaTrainingCount,
     autoTrainingCount,
-    imageTrainingCount
+    imageTrainingCount,
+    kgTrainingCount
   };
 }
 

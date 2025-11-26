@@ -101,6 +101,7 @@ export type CollectionChunkFormType = {
   imageIndex: boolean;
   autoIndexes: boolean;
   hypeIndexes: boolean;
+  kgIndexes: boolean; // Knowledge graph enable
   indexPrefixTitle: boolean;
   autoIndexesPrompt?: string;
   hypeIndexPrompt?: string;
@@ -139,6 +140,7 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
   const chunkSplitMode = watch('chunkSplitMode');
   const autoIndexes = watch('autoIndexes');
   const hypeIndexes = watch('hypeIndexes');
+  const kgIndexes = watch('kgIndexes');
   const indexSize = watch('indexSize');
   const imageIndex = watch('imageIndex');
   const indexPrefixTitle = watch('indexPrefixTitle');
@@ -451,6 +453,12 @@ const CollectionChunkForm = ({ form }: { form: UseFormReturn<CollectionChunkForm
                       }
                     />
                   </MyTooltip>
+                </HStack>
+                <HStack flex={'1'} spacing={1}>
+                  <Checkbox isChecked={kgIndexes} {...register('kgIndexes')}>
+                    <FormLabel>{t('dataset:kg_enable_indexes')}</FormLabel>
+                  </Checkbox>
+                  <QuestionTip label={t('dataset:kg_enable_indexes_tips')} />
                 </HStack>
               </>
             )}

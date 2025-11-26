@@ -8,6 +8,8 @@
   "auto_indexes": "自動生成補充索引",
   "auto_indexes_tips": "透過大模型進行額外索引生成，提高語義豐富度，提高檢索的精度。",
   "auto_training_queue": "增強索引排隊",
+  "kg_enable_indexes": "知識圖譜構建",
+  "kg_enable_indexes_tips": "構建知識圖譜，提取實體和關係，增強理解和推理能力。",
   "backup_collection": "備份數據",
   "backup_dataset": "備份導入",
   "backup_dataset_success": "備份創建成功",

@@ -94,6 +94,9 @@ const TrainingDataSchema = new Schema({
     default: []
   },
 
+  // KG chunks for knowledge graph construction
+  chunks: [String],
+
   errorMsg: String
 });
 

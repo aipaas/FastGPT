@@ -36,6 +36,7 @@ export const ChunkSettings = {
   indexPrefixTitle: Boolean,
   hypeIndexes: Boolean,
   small2bigIndexes: Boolean,
+  kgIndexes: Boolean,
   hypeIndexPrompt: String,
   imageIndexPrompt: String,
   small2bigConfigType: {

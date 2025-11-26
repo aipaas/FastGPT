@@ -8,6 +8,8 @@
   "auto_indexes": "Auto generate supplemental indexes",
   "auto_indexes_tips": "Generate extra indexes using models to improve semantic richness and search accuracy.",
   "auto_training_queue": "Enhanced index queue",
+  "kg_enable_indexes": "Knowledge Graph Construction",
+  "kg_enable_indexes_tips": "Build knowledge graph to extract entities and relationships for enhanced understanding and reasoning.",
   "backup_collection": "Backup data",
   "backup_dataset": "Import from backup",
   "backup_dataset_success": "Backup created successfully.",

@@ -14,7 +14,7 @@ import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 async function handler(
   req: ApiRequestProps<FileIdCreateDatasetCollectionParams>
 ): CreateCollectionResponse {
-  const { fileId, customPdfParse, ...body } = req.body;
+  const { fileId, customPdfParse, kgIndexes, ...body } = req.body;
 
   const { teamId, tmbId, dataset } = await authDataset({
     req,
@@ -48,7 +48,8 @@ async function handler(
       metadata: {
         relatedImgId: fileId
       },
-      customPdfParse
+      customPdfParse,
+      kgIndexes: kgIndexes
     }
   });
 

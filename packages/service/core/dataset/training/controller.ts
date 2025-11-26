@@ -190,3 +190,49 @@ export const pushDatasetToParseQueue = async ({
     { session, ordered: true }
   );
 };
+
+export interface PushKGTaskToQueueParams {
+  teamId: string;
+  tmbId: string;
+  datasetId: string;
+  collectionId: string;
+  chunks: string[];
+  agentModel: string;
+  embeddingModel: string;
+  billId?: string;
+  session?: ClientSession;
+  dataMetadata?: Record<string, any>;
+}
+
+export async function pushKGTaskToQueue({
+  teamId,
+  tmbId,
+  datasetId,
+  collectionId,
+  chunks,
+  agentModel,
+  embeddingModel,
+  billId,
+  session,
+  dataMetadata
+}: PushKGTaskToQueueParams): Promise<void> {
+  await MongoDatasetTraining.create(
+    [
+      {
+        teamId,
+        tmbId,
+        datasetId,
+        collectionId,
+        billId,
+        mode: TrainingModeEnum.kg,
+        retryCount: 5,
+        chunks: chunks,
+        dataMetadata: dataMetadata || {
+          chunkCount: chunks.length,
+          totalLength: chunks.reduce((sum, text) => sum + text.length, 0)
+        }
+      }
+    ],
+    { session, ordered: true }
+  );
+}

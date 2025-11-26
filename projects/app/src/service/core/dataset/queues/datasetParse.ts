@@ -31,6 +31,7 @@ import { hashStr } from '@fastgpt/global/common/string/tools';
 import { POST } from '@fastgpt/service/common/api/plusRequest';
 import { pushLLMTrainingUsage } from '@fastgpt/service/support/wallet/usage/controller';
 import { MongoImage } from '@fastgpt/service/common/file/image/schema';
+import { pushKGTaskToQueue } from '@fastgpt/service/core/dataset/training/controller';
 
 const requestLLMPargraph = async ({
   rawText,
@@ -325,7 +326,40 @@ export const datasetParseQueue = async (): Promise<any> => {
           session
         });
 
-        // 7. Delete task
+        // 7. Push to KG queue if enabled
+        if (collection.kgIndexes) {
+          try {
+            const kgChunks = chunks.map((chunk) => chunk.q || '').filter((text) => text.length > 0);
+
+            if (kgChunks.length > 0) {
+              await pushKGTaskToQueue({
+                teamId: data.teamId,
+                tmbId: data.tmbId,
+                datasetId: dataset._id,
+                collectionId: collection._id,
+                chunks: kgChunks,
+                agentModel: dataset.agentModel,
+                embeddingModel: dataset.vectorModel,
+                billId: data.billId,
+                session,
+                dataMetadata: {
+                  sourceReadType
+                }
+              });
+
+              addLog.info(`[Parse Queue] KG task pushed`, {
+                chunkCount: kgChunks.length,
+                totalLength: kgChunks.reduce((sum, text) => sum + text.length, 0)
+              });
+            } else {
+              addLog.warn(`[Parse Queue] No valid chunks for KG task`);
+            }
+          } catch (kgError) {
+            addLog.error(`[Parse Queue] Failed to push KG task`, kgError);
+          }
+        }
+
+        // 8. Delete task
         await MongoDatasetTraining.deleteOne(
           {
             _id: data._id
@@ -335,7 +369,7 @@ export const datasetParseQueue = async (): Promise<any> => {
           }
         );
 
-        // 8. Remove image ttl
+        // 9. Remove image ttl
         const relatedImgId = collection.metadata?.relatedImgId;
         if (relatedImgId) {
           await MongoImage.updateMany(
