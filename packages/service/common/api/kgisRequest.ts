@@ -91,8 +91,8 @@ export function kgisRequest(
       baseURL: KGIS_API_ENDPOINT,
       url,
       method,
-      data: ['POST', 'PUT'].includes(method) ? data : undefined,
-      params: !['POST', 'PUT'].includes(method) ? data : undefined,
+      data: ['POST', 'PUT', 'DELETE'].includes(method) ? data : undefined,
+      params: !['POST', 'PUT', 'DELETE'].includes(method) ? data : undefined,
       ...config // 自定义配置
     })
     .then((res) => checkRes(res.data))

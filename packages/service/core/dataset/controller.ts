@@ -1,7 +1,7 @@
 import { type DatasetSchemaType } from '@fastgpt/global/core/dataset/type';
 import { MongoDatasetCollection } from './collection/schema';
 import { MongoDataset } from './schema';
-import { delCollectionRelatedSource } from './collection/controller';
+import { delCollectionRelatedSource, deleteKnowledgeGraph } from './collection/controller';
 import { type ClientSession } from '../../common/mongo';
 import { MongoDatasetTraining } from './training/schema';
 import { MongoDatasetData } from './data/schema';
@@ -15,7 +15,11 @@ import { removeDatasetSyncJobScheduler } from './datasetSync';
 import { mongoSessionRun } from '../../common/mongo/sessionRun';
 import { removeImageByPath } from '../../common/file/image/controller';
 import { UserError } from '@fastgpt/global/common/error/utils';
-import { DBDatasetVectorTableName,DBDatasetValueVectorTableName,DatasetVectorTableName } from '../../common/vectorDB/constants';
+import {
+  DBDatasetVectorTableName,
+  DBDatasetValueVectorTableName,
+  DatasetVectorTableName
+} from '../../common/vectorDB/constants';
 /* ============= dataset ========== */
 /* find all datasetId by top datasetId */
 export async function findDatasetAndAllChildren({
@@ -113,9 +117,10 @@ export async function delDatasetRelevantData({
       // Delete dataset Image
       clearDatasetImages(datasetIds),
       // Delete vector data
-      deleteDatasetDataVector({ teamId, datasetIds,tableName:DBDatasetVectorTableName}),
-      deleteDatasetDataVector({ teamId, datasetIds,tableName:DBDatasetValueVectorTableName}),
-      deleteDatasetDataVector({ teamId, datasetIds,tableName:DatasetVectorTableName})
+      deleteDatasetDataVector({ teamId, datasetIds, tableName: DBDatasetVectorTableName }),
+      deleteDatasetDataVector({ teamId, datasetIds, tableName: DBDatasetValueVectorTableName }),
+      deleteDatasetDataVector({ teamId, datasetIds, tableName: DatasetVectorTableName }),
+      deleteKnowledgeGraph({ collections, datasetIds, teamId })
     ]);
   });
 

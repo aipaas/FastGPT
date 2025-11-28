@@ -28,6 +28,9 @@ import { pushDataListToTrainingQueue, pushDatasetToParseQueue } from '../trainin
 import { MongoImage } from '../../../common/file/image/schema';
 import { hashStr } from '@fastgpt/global/common/string/tools';
 import { addDays } from 'date-fns';
+import { MongoDataset } from '../schema';
+import { kgisDELETE } from '../../../common/api/kgisRequest';
+import { addLog } from '../../../common/system/log';
 import { MongoDatasetDataText } from '../data/dataTextSchema';
 import { retryFn } from '@fastgpt/global/common/system/utils';
 import { getTrainingModeByCollection } from './utils';
@@ -370,6 +373,132 @@ export const delCollectionRelatedSource = async ({
     })
   ]);
 };
+
+/**
+ * Delete knowledge graph data for collections with kgIndexes enabled
+ *
+ * Note: This function initiates KG deletion operations asynchronously and returns immediately.
+ * The actual deletion happens in the background to avoid blocking the main deletion flow.
+ * Check application logs for completion status and any errors.
+ */
+export async function deleteKnowledgeGraph({
+  collections,
+  datasetIds,
+  teamId
+}: {
+  collections: DatasetCollectionSchemaType[];
+  datasetIds: string[];
+  teamId: string;
+}) {
+  const kgCollections = collections.filter((collection) => collection.kgIndexes === true);
+  if (kgCollections.length === 0) {
+    addLog.info(
+      `[deleteKnowledgeGraph] No collections with kgIndexes enabled, skipping KG deletion`
+    );
+    return;
+  }
+
+  // Get dataset models information for KGIS API calls
+  const datasets = await MongoDataset.find({
+    _id: { $in: datasetIds },
+    teamId
+  })
+    .select('agentModel vectorModel')
+    .lean();
+
+  const datasetModelMap = new Map<string, { agentModel: string; vectorModel: string }>();
+  datasets.forEach((dataset) => {
+    datasetModelMap.set(String(dataset._id), {
+      agentModel: dataset.agentModel,
+      vectorModel: dataset.vectorModel
+    });
+  });
+
+  // Process deletions in parallel with max concurrency of 3
+  const batchSize = 3;
+  const results: Array<{ success: boolean; collectionId: string; error?: string }> = [];
+
+  for (let i = 0; i < kgCollections.length; i += batchSize) {
+    const batch = kgCollections.slice(i, i + batchSize);
+
+    const batchPromises = batch.map(async (collection) => {
+      const datasetId = String(collection.datasetId);
+      const collectionId = String(collection._id);
+
+      try {
+        const models = datasetModelMap.get(datasetId);
+        if (!models) {
+          const error = `Dataset models not found for datasetId: ${datasetId}`;
+          addLog.error(`[deleteKnowledgeGraph] ${error}`, { datasetId, collectionId });
+          return { success: false, collectionId, error };
+        }
+
+        const requestData = {
+          workspace_id: datasetId,
+          doc_id: collectionId,
+          llm_model: models.agentModel,
+          embedding_model: models.vectorModel,
+          timeout: 3600, // 1 hour timeout
+          delete_llm_cache: false
+        };
+
+        // 异步调用 KG 删除，不等待删除耗时操作结果
+        // 使用 fire-and-forget 模式，通过日志记录执行状态
+        kgisDELETE('/api/lightrag/documents/delete', requestData)
+          .then(() => {
+            addLog.info(`[deleteKnowledgeGraph] Successfully deleted KG for collection`, {
+              datasetId,
+              collectionId
+            });
+          })
+          .catch((error) => {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            addLog.error(`[deleteKnowledgeGraph] Failed to delete KG for collection`, {
+              datasetId,
+              collectionId,
+              error: errorMessage
+            });
+          });
+
+        // 立即返回成功，因为 KG 删除操作已在后台执行
+        return { success: true, collectionId };
+      } catch (error) {
+        // 这个 catch 块现在主要处理数据准备阶段的错误
+        // KG 删除 API 的错误已经在上面的异步 catch 中处理
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        addLog.error(`[deleteKnowledgeGraph] Failed to prepare KG deletion for collection`, {
+          datasetId,
+          collectionId,
+          error: errorMessage
+        });
+
+        return { success: false, collectionId, error: errorMessage };
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
+
+    // Add delay between batches to avoid overwhelming the service
+    if (i + batchSize < kgCollections.length) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+
+  const successCount = results.filter((r) => r.success).length;
+  const failureCount = results.filter((r) => !r.success).length;
+
+  addLog.info(`[deleteKnowledgeGraph] Completed KG deletion initiation`, {
+    totalCollections: kgCollections.length,
+    successCount,
+    failureCount,
+    note: 'KG deletion operations are running in background. Check logs for completion status.',
+    failures: results
+      .filter((r) => !r.success)
+      .map((r) => ({ collectionId: r.collectionId, error: r.error }))
+  });
+}
+
 /**
  * delete collection and it related data
  */
@@ -453,6 +582,11 @@ export async function delCollection({
         datasetIds,
         collectionIds,
         tableName: DBDatasetValueVectorTableName
+      }),
+      deleteKnowledgeGraph({
+        collections,
+        datasetIds,
+        teamId
       })
     ]);
 
