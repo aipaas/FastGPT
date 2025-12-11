@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(tree:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(npx ts-node core/train/rerank/external/__test_mock__.ts)",
+      "Bash(npx tsx:*)",
+      "Bash(pnpm test:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
