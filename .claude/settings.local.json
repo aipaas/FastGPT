@@ -6,7 +6,8 @@
       "Bash(pnpm lint:*)",
       "Bash(npx ts-node core/train/rerank/external/__test_mock__.ts)",
       "Bash(npx tsx:*)",
-      "Bash(pnpm test:*)"
+      "Bash(pnpm test:*)",
+      "Bash(test -f:*)"
     ],
     "deny": [],
     "ask": []

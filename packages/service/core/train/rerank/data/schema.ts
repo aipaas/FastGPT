@@ -4,7 +4,6 @@ import { TrainDataSourceEnum } from '@fastgpt/global/core/train/rerank/constants
 
 /**
  * Rerank 应用训练数据 Schema
- * 注意：这是占位实现，完整实现在 Task 5 (trainset-data.md)
  */
 const RerankTrainsetDataSchema = new connectionMongo.Schema({
   trainsetId: {
@@ -39,15 +38,40 @@ const RerankTrainsetDataSchema = new connectionMongo.Schema({
     enum: Object.values(TrainDataSourceEnum),
     required: true
   },
+  metadata: {
+    type: {
+      sourceInfo: {
+        // 来自知识库（拷贝）
+        datasetTrainsetDataId: String,
+        datasetId: connectionMongo.Schema.Types.ObjectId,
+        datasetName: String,
+        dataIds: [String],
+        // 手动添加
+        manualInfo: {
+          creator: String,
+          createdAt: Date,
+          reason: String
+        }
+      },
+      // 生成配置（如果来自知识库）
+      generationConfig: {
+        model: String,
+        temperature: Number
+      }
+    },
+    required: true
+  },
   createTime: {
     type: Date,
     default: () => new Date()
   }
 });
 
-// 基础索引
+// 索引
 RerankTrainsetDataSchema.index({ trainsetId: 1, createTime: -1 });
-RerankTrainsetDataSchema.index({ appId: 1 });
+RerankTrainsetDataSchema.index({ appId: 1, createTime: -1 });
+RerankTrainsetDataSchema.index({ teamId: 1 });
+RerankTrainsetDataSchema.index({ source: 1 });
 
 export const MongoRerankTrainsetData = getMongoModel<RerankTrainsetDataSchemaType>(
   'rerank_trainset_data',
