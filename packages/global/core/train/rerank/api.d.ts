@@ -17,7 +17,7 @@ export type CreateRerankTrainsetBody = {
 
 /** 应用训练集详情查询 */
 export type RerankTrainsetDetailQuery = {
-  appId: string;
+  trainsetId: string;
 };
 
 export type RerankTrainsetDetailResponse = RerankTrainsetSchemaType & {
@@ -26,6 +26,22 @@ export type RerankTrainsetDetailResponse = RerankTrainsetSchemaType & {
     name: string;
     avatar: string;
   };
+};
+
+/** 应用训练集列表查询 */
+export type ListRerankTrainsetBody = {
+  appId?: string;
+  status?: string;
+  pageNum?: number;
+  pageSize?: number;
+};
+
+export type ListRerankTrainsetResponse = {
+  list: (RerankTrainsetSchemaType & {
+    appName: string;
+    appAvatar: string;
+  })[];
+  total: number;
 };
 
 /** 删除应用训练集 */

@@ -1,11 +1,12 @@
 import type { Processor } from 'bullmq';
 import type { DatasetTrainsetGenerateJobData } from './mq';
 import { MongoDatasetTrainset, MongoDatasetTrainsetData } from './schema';
-import { MongoDatasetCollection } from '../../../dataset/collection/schema';
+import { MongoDatasetData } from '../../../dataset/data/schema';
 import { DatasetTrainsetStatusEnum } from '@fastgpt/global/core/train/rerank/constants';
 import { syntheticRerankTrainData } from '../external';
 import { addLog } from '../../../../common/system/log';
 import { UnrecoverableError } from 'bullmq';
+import { Types } from 'mongoose';
 
 /**
  * 知识库训练集生成处理器
@@ -116,29 +117,36 @@ export const datasetTrainsetGenerateProcessor: Processor<DatasetTrainsetGenerate
 
 /**
  * 从知识库采样数据分片
- * 内部函数
+ * 参考评估数据生成逻辑
  */
 async function sampleDataFromDataset(
   datasetId: string,
   options: { sampleSize: number }
 ): Promise<Array<{ _id: string; content: string }>> {
-  // 使用聚合查询随机采样
-  const samples = await MongoDatasetCollection.aggregate([
+  const match = {
+    datasetId: new Types.ObjectId(datasetId)
+  };
+
+  const sampleData = await MongoDatasetData.aggregate([
     {
-      $match: {
-        datasetId: datasetId,
-        // 只采样有内容的分片
-        'rawLink.rawText': { $exists: true, $ne: '' }
-      }
+      $match: match
     },
-    { $sample: { size: options.sampleSize } },
+    {
+      $sample: { size: options.sampleSize }
+    },
     {
       $project: {
-        _id: 1,
-        content: '$rawLink.rawText'
+        q: 1,
+        a: 1,
+        datasetId: 1,
+        collectionId: 1
       }
     }
   ]);
 
-  return samples;
+  // 转换为训练数据所需的格式
+  return sampleData.map((doc) => ({
+    _id: doc._id,
+    content: doc.q || ''
+  }));
 }

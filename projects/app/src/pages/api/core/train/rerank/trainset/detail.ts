@@ -1,27 +1,29 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { NextAPI } from '@/service/middleware/entry';
-import { authRerankTrainsetByAppId } from '@fastgpt/service/support/permission/train/rerank/auth';
+import { authRerankTrainset } from '@fastgpt/service/support/permission/train/rerank/auth';
 import { ReadPermissionVal } from '@fastgpt/global/support/permission/constant';
-import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
+import { MongoApp } from '@fastgpt/service/core/app/schema';
 import type {
   RerankTrainsetDetailQuery,
   RerankTrainsetDetailResponse
 } from '@fastgpt/global/core/train/rerank/api';
+import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 
 async function handler(
   req: NextApiRequest,
   res: NextApiResponse<RerankTrainsetDetailResponse>
 ): Promise<RerankTrainsetDetailResponse> {
-  const { appId } = req.query as RerankTrainsetDetailQuery;
+  const { trainsetId } = req.query as RerankTrainsetDetailQuery;
 
-  if (!appId) {
+  if (!trainsetId) {
     return Promise.reject(CommonErrEnum.missingParams);
   }
 
-  const { app, trainset } = await authRerankTrainsetByAppId({
+  // 通过 trainsetId 认证并获取训练集
+  const { trainset, app } = await authRerankTrainset({
     req,
     authToken: true,
-    appId,
+    trainsetId,
     per: ReadPermissionVal
   });
 

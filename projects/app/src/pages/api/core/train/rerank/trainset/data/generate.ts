@@ -32,15 +32,19 @@ async function handler(
     per: WritePermissionVal
   });
 
-  // 2. 确定目标知识库
-  const targetDatasetIds = datasetIds?.length
-    ? datasetIds
-    : app.modules
-        .filter((m: any) => m.type === 'dataset')
-        .map((m: any) => m.datasetId)
-        .filter(Boolean);
+  // 2. 处理知识库ID
+  let authDatasetIds: string[];
 
-  if (!targetDatasetIds.length) {
+  if (datasetIds?.length) {
+    // 用户指定了知识库，直接使用
+    authDatasetIds = datasetIds;
+  } else {
+    // 用户未指定，使用工具函数从应用配置中解析知识库ID
+    const { extractDatasetIdsFromApp } = require('@fastgpt/service/core/train/rerank/utils');
+    authDatasetIds = extractDatasetIdsFromApp(app);
+  }
+
+  if (!authDatasetIds.length) {
     return Promise.reject(RerankTrainErrEnum.noDatasetAvailable);
   }
 
@@ -48,7 +52,7 @@ async function handler(
   await authGenerateFromDatasets({
     req,
     authToken: true,
-    datasetIds: targetDatasetIds
+    datasetIds: authDatasetIds
   });
 
   // 4. 检查状态
@@ -60,7 +64,7 @@ async function handler(
   const job = await rerankTrainDataGenerateQueue.add(`generate-${trainset._id}-${Date.now()}`, {
     appId,
     trainsetId: String(trainset._id),
-    datasetIds: targetDatasetIds,
+    datasetIds, // 直接传递用户指定的datasetIds，让控制器层处理解析
     teamId,
     tmbId,
     forceRegenerate

@@ -1098,9 +1098,9 @@ export default NextAPI(handler);
 #### 6.1.2 应用训练集详情
 
 ```typescript
-// GET /api/core/train/rerank/trainset/detail?appId=xxx
+// GET /api/core/train/rerank/trainset/detail?trainsetId=xxx
 export type RerankTrainsetDetailQuery = {
-  appId: string;
+  trainsetId: string;
 };
 
 export type RerankTrainsetDetailResponse = RerankTrainsetSchemaType & {
@@ -1114,16 +1114,16 @@ export type RerankTrainsetDetailResponse = RerankTrainsetSchemaType & {
 async function handler(
   req: ApiRequestProps<{}, RerankTrainsetDetailQuery>
 ): Promise<RerankTrainsetDetailResponse> {
-  const { appId } = req.query;
+  const { trainsetId } = req.query;
 
-  if (!appId) {
+  if (!trainsetId) {
     return Promise.reject(CommonErrEnum.missingParams);
   }
 
-  const { app, trainset } = await authRerankTrainsetByAppId({
+  const { app, trainset } = await authRerankTrainset({
     req,
     authToken: true,
-    appId,
+    trainsetId,
     per: ReadPermissionVal
   });
 

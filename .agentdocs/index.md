@@ -14,13 +14,78 @@
 `testing/mongodb-setup.md` - MongoDB 测试环境离线配置指南，首次配置测试环境或测试失败时必读
 
 ## 当前任务文档
-`workflow/250112-train-module-foundation.md` - 训练模块基础设施（类型、常量、错误码、Schema 定义）
-`workflow/250112-train-module-external-mocks.md` - 外部服务 Mock 实现（DiTing、AICP）
-`workflow/250112-train-module-dataset-trainset.md` - 知识库训练集实现（层级1，内部缓存层）
-`workflow/250112-train-module-app-trainset-basic.md` - 应用训练集基础实现（层级2，对外暴露层）
-`workflow/250112-train-module-trainset-data.md` - 训练数据管理实现（数据生成、CRUD）
-`workflow/250112-train-module-train-task.md` - 训练任务管理实现（4阶段工作流、checkpoint 断点续传）
-`workflow/250112-train-module-integration.md` - 级联删除和集成测试
+无
+
+## 已完成任务文档
+`workflow/done/250112-train-module-integration.md` - 级联删除和集成测试（应用删除级联、知识库删除级联、集成测试）✅
+`workflow/done/250112-train-module-foundation.md` - 训练模块基础设施（类型、常量、错误码、Schema 定义）✅
+`workflow/done/250112-train-module-external-mocks.md` - 外部服务 Mock 实现（DiTing、AICP）✅
+`workflow/done/250112-train-module-dataset-trainset.md` - 知识库训练集实现（层级1，内部缓存层）✅
+`workflow/done/250112-train-module-app-trainset-basic.md` - 应用训练集基础实现（层级2，对外暴露层）✅
+`workflow/done/250112-train-module-trainset-data.md` - 训练数据管理实现（数据生成、CRUD）✅
+`workflow/done/250112-train-module-train-task.md` - 训练任务管理实现（4阶段工作流、checkpoint 断点续传）✅
+
+## 技术债务
+
+### 训练模块技术债务
+以下功能已实现基础框架和 Mock，但需要后续真实对接：
+
+1. **模型配置管理** (`packages/service/core/train/rerank/model/controller.ts`)
+   - 当前状态：Mock 实现，生成模拟配置 ID
+   - 待完成：对接 FastGPT 模型管理系统 (MongoSystemModel)
+   - 涉及函数：`createRerankModelConfig`
+   - 需要实现：
+     - 调用 `MongoSystemModel.create` 创建真实模型配置
+     - 调用 `updatedReloadSystemModel` 重新加载模型列表
+     - 配置 AICP 渠道相关参数
+
+2. **基础模型配置提取** (`packages/service/core/train/rerank/task/controller.ts`)
+   - 当前状态：Mock endpoint 信息（localhost:8080）
+   - 待完成：从 MongoAIModel 查询真实模型配置
+   - 涉及函数：`createRerankTrainTask`
+   - 需要实现：
+     - 根据 baseModelConfigId 查询 MongoAIModel
+     - 解析真实的 baseUrl 获取 ip、port、model、api_key
+
+3. **评测数据生成** (`packages/service/core/train/rerank/task/processor.ts`)
+   - 当前状态：调用 DiTing Mock 服务生成评测数据集
+   - 待完成：通过调用应用的知识库搜索节点生成评测数据集
+   - 涉及函数：`runGenerateBaseEvalDataset`、`runGenerateTunedEvalDataset`
+   - 实现思路：
+     - 获取应用工作流配置，找到知识库搜索节点
+     - 从训练数据中随机抽样 100-200 条 query
+     - 分别使用基础模型和微调模型运行知识库搜索
+     - 记录返回的文档排序结果作为评测数据集
+
+4. **临时文件清理** (`packages/service/core/train/rerank/task/processor.ts`)
+   - 当前状态：数据准备阶段生成 JSONL 文件后未清理
+   - 待完成：任务完成或失败后清理临时文件
+   - 涉及位置：`runPrepareStage` 生成的 `/tmp/rerank_train_*.jsonl`
+   - 建议：在任务 completed/failed/cancelled 时删除对应临时文件
+
+5. **AICP 真实对接** (已完成 Mock，待真实环境测试)
+   - Mock 位置：`packages/service/core/train/rerank/external/aicp/mock.ts`
+   - 真实实现位置（待创建）：`packages/service/core/train/rerank/external/aicp/client.ts`
+   - 需要环境变量或配置控制使用 Mock 还是真实服务
+
+6. **DiTing 真实对接** (已完成 Mock，待真实环境测试)
+   - Mock 位置：`packages/service/core/train/rerank/external/diting/mock.ts`
+   - 真实实现位置（待创建）：`packages/service/core/train/rerank/external/diting/client.ts`
+   - 需要环境变量或配置控制使用 Mock 还是真实服务
+
+### 待优化项
+
+1. **Worker 并发控制**
+   - 当前：训练任务 Worker 并发数固定为 1
+   - 优化方向：根据系统资源动态调整并发数
+
+2. **轮询超时配置**
+   - 当前：AICP 任务轮询最多 2000 次（约 2.8 小时）硬编码
+   - 优化方向：配置化超时时间和轮询间隔
+
+3. **错误重试策略**
+   - 当前：所有错误统一重试 3 次
+   - 优化方向：根据错误类型设置不同的重试策略
 
 ## 全局重要记忆
 

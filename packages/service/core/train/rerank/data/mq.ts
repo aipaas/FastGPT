@@ -3,7 +3,7 @@ import { getQueue, QueueNames } from '../../../../common/bullmq';
 export type RerankTrainDataGenerateJobData = {
   appId: string;
   trainsetId: string;
-  datasetIds: string[];
+  datasetIds?: string[]; // 改为可选，允许用户在API中不指定
   teamId: string;
   tmbId: string;
   forceRegenerate: boolean;

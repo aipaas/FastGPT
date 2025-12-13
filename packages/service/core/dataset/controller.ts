@@ -15,7 +15,14 @@ import { removeDatasetSyncJobScheduler } from './datasetSync';
 import { mongoSessionRun } from '../../common/mongo/sessionRun';
 import { removeImageByPath } from '../../common/file/image/controller';
 import { UserError } from '@fastgpt/global/common/error/utils';
-import { DBDatasetVectorTableName,DBDatasetValueVectorTableName,DatasetVectorTableName } from '../../common/vectorDB/constants';
+import {
+  DBDatasetVectorTableName,
+  DBDatasetValueVectorTableName,
+  DatasetVectorTableName
+} from '../../common/vectorDB/constants';
+import { MongoDatasetTrainset } from '../train/rerank/dataset_trainset/schema';
+import { MongoDatasetTrainsetData } from '../train/rerank/dataset_trainset/schema';
+import { addLog } from '../../common/system/log';
 /* ============= dataset ========== */
 /* find all datasetId by top datasetId */
 export async function findDatasetAndAllChildren({
@@ -67,6 +74,27 @@ export async function getCollectionWithDataset(collectionId: string) {
   return data;
 }
 
+/**
+ * 删除知识库时的训练模块清理
+ * 在现有的知识库删除函数中调用此函数
+ */
+export async function cleanupTrainModuleOnDatasetDelete(
+  datasetIds: string[],
+  session?: ClientSession
+): Promise<void> {
+  if (!datasetIds.length) return;
+
+  addLog.info('Cleanup train module on dataset delete', { datasetIds });
+
+  // 删除知识库训练数据
+  await MongoDatasetTrainsetData.deleteMany({ datasetId: { $in: datasetIds } }, { session });
+
+  // 删除知识库训练集
+  await MongoDatasetTrainset.deleteMany({ datasetId: { $in: datasetIds } }, { session });
+
+  addLog.info('Cleanup train module completed', { datasetIds });
+}
+
 /* delete all data by datasetIds */
 export async function delDatasetRelevantData({
   datasets,
@@ -113,9 +141,9 @@ export async function delDatasetRelevantData({
       // Delete dataset Image
       clearDatasetImages(datasetIds),
       // Delete vector data
-      deleteDatasetDataVector({ teamId, datasetIds,tableName:DBDatasetVectorTableName}),
-      deleteDatasetDataVector({ teamId, datasetIds,tableName:DBDatasetValueVectorTableName}),
-      deleteDatasetDataVector({ teamId, datasetIds,tableName:DatasetVectorTableName})
+      deleteDatasetDataVector({ teamId, datasetIds, tableName: DBDatasetVectorTableName }),
+      deleteDatasetDataVector({ teamId, datasetIds, tableName: DBDatasetValueVectorTableName }),
+      deleteDatasetDataVector({ teamId, datasetIds, tableName: DatasetVectorTableName })
     ]);
   });
 
@@ -152,6 +180,9 @@ export const deleteDatasets = async ({
   await mongoSessionRun(async (session) => {
     // delete dataset data
     await delDatasetRelevantData({ datasets, session });
+
+    // delete train module data
+    await cleanupTrainModuleOnDatasetDelete(datasetIds, session);
 
     // delete dataset
     await MongoDataset.deleteMany(

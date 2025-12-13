@@ -2,7 +2,8 @@
 
 **任务ID**: 250112-train-module-integration
 **创建时间**: 2025-01-12
-**状态**: 待开始
+**完成时间**: 2025-01-12
+**状态**: ✅ 已完成
 **依赖**: 250112-train-module-train-task
 **后续**: 无（最终阶段）
 
@@ -593,3 +594,87 @@ describe('Rerank Train Module Integration Test', () => {
 3. **监控和告警**：添加训练任务的监控和告警机制
 4. **数据分析**：添加训练数据质量分析功能
 5. **对话日志导入**：实现从对话日志导入训练数据的功能（当前跳过）
+
+## 实施总结
+
+### 完成内容
+
+#### 1. 应用删除级联清理 ✅
+**文件**: `packages/service/core/app/controller.ts`
+
+实现了 `cleanupTrainModuleOnAppDelete` 函数:
+- 取消进行中的训练任务（pending/running）
+- 从 BullMQ 队列中移除训练任务 job
+- 删除所有训练任务记录（MongoRerankTrainTask）
+- 删除应用训练数据（MongoRerankTrainsetData）
+- 删除应用训练集（MongoRerankTrainset）
+- 在 `onDelOneApp` 函数的事务中调用
+
+关键代码位置: `packages/service/core/app/controller.ts:141-188`
+
+#### 2. 知识库删除级联清理 ✅
+**文件**: `packages/service/core/dataset/controller.ts`
+
+实现了 `cleanupTrainModuleOnDatasetDelete` 函数:
+- 删除知识库训练数据（MongoDatasetTrainsetData）
+- 删除知识库训练集（MongoDatasetTrainset）
+- 在 `deleteDatasets` 函数的事务中调用
+
+关键代码位置: `packages/service/core/dataset/controller.ts:77-92`
+
+#### 3. 集成测试 ✅
+**文件**: `test/cases/service/core/train/integration.test.ts`
+
+编写了 8 个集成测试，全部通过:
+- ✅ 应用删除应删除所有训练数据
+- ✅ 应用删除应取消进行中的训练任务
+- ✅ 取消任务失败不应阻止删除流程
+- ✅ 空数组不应执行任何操作（应用）
+- ✅ 知识库删除应删除所有训练数据
+- ✅ 知识库删除应支持事务会话
+- ✅ 空数组不应执行任何操作（知识库）
+- ✅ 级联删除数据一致性验证
+
+测试覆盖范围:
+- 正常删除流程
+- 边界情况（空数组、无进行中任务）
+- 错误处理（取消任务失败仍继续删除）
+- 事务支持验证
+- 数据一致性验证
+
+#### 4. 代码质量验证 ✅
+- **Lint 检查**: 通过（0 errors, 81 warnings 均为项目既有问题）
+- **单元测试**: 8/8 通过
+- **测试覆盖**: 覆盖应用删除、知识库删除、边界情况、错误处理
+
+### 技术亮点
+
+1. **事务一致性**: 级联删除与原有删除逻辑共享同一个 MongoDB session，保证数据一致性
+2. **优雅降级**: 取消 BullMQ job 失败不会阻止删除流程继续执行
+3. **防御性编程**: 空数组检查，避免不必要的数据库查询
+4. **职责分离**: 清理逻辑独立为单独函数，便于测试和维护
+
+### 文件清单
+
+**新增文件** (1):
+- `test/cases/service/core/train/integration.test.ts` - 集成测试
+
+**修改文件** (2):
+- `packages/service/core/app/controller.ts` - 添加应用删除级联清理
+- `packages/service/core/dataset/controller.ts` - 添加知识库删除级联清理
+
+### 验证结果
+
+```bash
+# Lint 检查
+pnpm lint
+# 结果: ✅ 通过 (0 errors)
+
+# 集成测试
+pnpm test test/cases/service/core/train/integration.test.ts
+# 结果: ✅ 8/8 通过
+```
+
+### 待办事项更新
+
+所有任务已完成，训练模块的核心功能开发全部完成。

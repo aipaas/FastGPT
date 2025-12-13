@@ -7,7 +7,9 @@
       "Bash(npx ts-node core/train/rerank/external/__test_mock__.ts)",
       "Bash(npx tsx:*)",
       "Bash(pnpm test:*)",
-      "Bash(test -f:*)"
+      "Bash(test -f:*)",
+      "Bash(node test/e2e/rerank-training-api.test.js)",
+      "Bash(pnpm list:*)"
     ],
     "deny": [],
     "ask": []

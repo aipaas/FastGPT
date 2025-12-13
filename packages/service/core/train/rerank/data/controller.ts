@@ -6,10 +6,12 @@ import {
   checkDatasetTrainsetReady,
   getDatasetTrainsetData
 } from '../dataset_trainset/controller';
+import { extractDatasetIdsFromApp } from '../utils';
 import type { RerankTrainsetDataSchemaType } from '@fastgpt/global/core/train/rerank/type';
 import {
   TrainDataSourceEnum,
-  RerankTrainsetStatusEnum
+  RerankTrainsetStatusEnum,
+  DatasetTrainsetStatusEnum
 } from '@fastgpt/global/core/train/rerank/constants';
 import { addLog } from '../../../../common/system/log';
 
@@ -71,7 +73,11 @@ export async function updateTrainData(params: {
 }): Promise<void> {
   const { dataId, queries, positiveDocs, negativeDocs } = params;
 
-  const updateFields: any = {};
+  const updateFields: {
+    queries?: string[];
+    positiveDocs?: string[];
+    negativeDocs?: string[];
+  } = {};
   if (queries) updateFields.queries = queries;
   if (positiveDocs) updateFields.positiveDocs = positiveDocs;
   if (negativeDocs) updateFields.negativeDocs = negativeDocs;
@@ -200,11 +206,7 @@ export async function updateTrainsetStats(trainsetId: string): Promise<void> {
 
 /**
  * 生成应用训练数据（从知识库拷贝）
- * 核心逻辑：
- * 1. 获取应用关联的知识库
- * 2. 对每个知识库，确保知识库训练集存在（懒加载）
- * 3. 检查知识库训练集状态
- * 4. 如果就绪，从知识库训练集拷贝数据到应用训练集
+ * 重构版本：使用批量轮询策略
  */
 export async function generateAppTrainsetDataCore(params: {
   appId: string;
@@ -223,10 +225,7 @@ export async function generateAppTrainsetDataCore(params: {
   // 2. 确定目标知识库
   const targetDatasetIds = params.datasetIds?.length
     ? params.datasetIds
-    : app.modules
-        .filter((m: any) => m.type === 'dataset')
-        .map((m: any) => m.datasetId)
-        .filter(Boolean);
+    : extractDatasetIdsFromApp(app);
 
   if (!targetDatasetIds.length) {
     throw new Error('No datasets found for this app');
@@ -247,33 +246,114 @@ export async function generateAppTrainsetDataCore(params: {
       });
     }
 
-    // 5. 对每个知识库，确保训练集就绪并拷贝数据
+    // 5. 第一阶段：触发所有必要的生成任务
+    const datasetTrainsets: Array<{
+      datasetId: string;
+      trainsetId: string;
+      name: string;
+      status: string;
+    }> = [];
+
     for (const datasetId of targetDatasetIds) {
-      // 5.1 确保知识库训练集存在（懒加载，触发异步生成）
+      // 5.1 确保知识库训练集存在（懒加载，可能触发异步生成）
       const datasetTrainset = await ensureDatasetTrainset(datasetId);
 
-      // 5.2 检查知识库训练集状态
-      const { ready, status, errorMsg } = await checkDatasetTrainsetReady(
-        String(datasetTrainset._id)
-      );
+      datasetTrainsets.push({
+        datasetId,
+        trainsetId: String(datasetTrainset._id),
+        name: datasetTrainset.name,
+        status: datasetTrainset.status
+      });
+    }
 
-      if (!ready) {
-        // 如果不就绪，抛出错误（由队列重试）
-        throw new Error(`Dataset trainset not ready: status=${status}, error=${errorMsg || 'N/A'}`);
+    // 6. 第二阶段：统一轮询所有数据集的状态，直到全部生成完成
+    const maxWaitTime = 10 * 60 * 1000; // 最多等待10分钟
+    const pollInterval = 5000; // 每5秒检查一次
+    const startTime = Date.now();
+
+    addLog.info('Starting to poll dataset trainset generation status', {
+      datasetCount: datasetTrainsets.length,
+      trainsetId
+    });
+
+    while (Date.now() - startTime < maxWaitTime) {
+      let allReady = true;
+      let hasError = false;
+      let errorMsg = '';
+
+      // 检查所有数据集的状态
+      for (const trainset of datasetTrainsets) {
+        const statusCheck = await checkDatasetTrainsetReady(trainset.trainsetId);
+
+        if (statusCheck.status === DatasetTrainsetStatusEnum.error) {
+          allReady = false;
+          hasError = true;
+          errorMsg = `Dataset ${trainset.datasetId} trainset generation failed: ${statusCheck.errorMsg || 'Unknown error'}`;
+          break;
+        }
+
+        if (!statusCheck.ready) {
+          allReady = false;
+          // 如果还在生成中，继续等待
+          addLog.debug('Dataset trainset still generating', {
+            datasetId: trainset.datasetId,
+            status: statusCheck.status
+          });
+        }
       }
 
-      // 5.3 获取知识库训练数据
-      const datasetTrainData = await getDatasetTrainsetData(String(datasetTrainset._id));
+      if (allReady) {
+        // 所有数据集都准备就绪
+        addLog.info('All dataset trainsets are ready', {
+          trainsetId,
+          elapsedTime: (Date.now() - startTime) / 1000
+        });
+        break;
+      }
 
-      if (datasetTrainData.length === 0) {
-        addLog.warn('Dataset trainset has no data', {
-          datasetId,
-          trainsetId: String(datasetTrainset._id)
+      if (hasError) {
+        throw new Error(errorMsg);
+      }
+
+      // 等待下一次轮询
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    }
+
+    // 检查超时
+    const elapsedTime = Date.now() - startTime;
+    if (elapsedTime >= maxWaitTime) {
+      addLog.warn('Dataset trainset generation timeout', {
+        trainsetId,
+        waitTime: maxWaitTime / 1000
+      });
+      // 不抛出错误，继续处理已就绪的数据集
+    }
+
+    // 7. 第三阶段：拷贝所有已就绪的数据集数据
+    for (const trainset of datasetTrainsets) {
+      const finalStatusCheck = await checkDatasetTrainsetReady(trainset.trainsetId);
+
+      if (!finalStatusCheck.ready || finalStatusCheck.status === DatasetTrainsetStatusEnum.error) {
+        addLog.warn('Skipping dataset trainset due to error or timeout', {
+          datasetId: trainset.datasetId,
+          status: finalStatusCheck.status,
+          errorMsg: finalStatusCheck.errorMsg
         });
         continue;
       }
 
-      // 5.4 拷贝数据到应用训练集
+      // 获取训练数据
+      const datasetTrainData = await getDatasetTrainsetData(trainset.trainsetId);
+
+      if (datasetTrainData.length === 0) {
+        addLog.warn('Dataset trainset has no data', {
+          datasetId: trainset.datasetId,
+          trainsetId: trainset.trainsetId
+        });
+        continue;
+      }
+
+      // 拷贝数据到应用训练集
       const appTrainData = datasetTrainData.map((data) => ({
         trainsetId,
         appId,
@@ -289,8 +369,8 @@ export async function generateAppTrainsetDataCore(params: {
         metadata: {
           sourceInfo: {
             datasetTrainsetDataId: String(data._id), // 溯源
-            datasetId: datasetId,
-            datasetName: datasetTrainset.name.replace(' - 训练集', ''),
+            datasetId: trainset.datasetId,
+            datasetName: trainset.name.replace(' - 训练集', ''),
             dataIds: data.metadata.dataIds
           },
           generationConfig: data.metadata.generationConfig
@@ -299,17 +379,48 @@ export async function generateAppTrainsetDataCore(params: {
         createTime: new Date()
       }));
 
-      // 批量插入
-      await MongoRerankTrainsetData.insertMany(appTrainData);
+      // 批量插入（添加去重检查）
+      if (forceRegenerate) {
+        // 强制重新生成时，直接插入（因为前面已经清理了旧数据）
+        await MongoRerankTrainsetData.insertMany(appTrainData);
+      } else {
+        // 非强制重新生成时，检查并跳过已存在的数据
+        const existingSourceIds = await MongoRerankTrainsetData.find({
+          trainsetId,
+          'metadata.sourceInfo.datasetTrainsetDataId': {
+            $in: appTrainData.map((d) => d.metadata.sourceInfo.datasetTrainsetDataId)
+          }
+        }).distinct('metadata.sourceInfo.datasetTrainsetDataId');
+
+        const newData = appTrainData.filter(
+          (d) => !existingSourceIds.includes(d.metadata.sourceInfo.datasetTrainsetDataId)
+        );
+
+        if (newData.length > 0) {
+          await MongoRerankTrainsetData.insertMany(newData);
+          addLog.info('Inserted new train data (skipping duplicates)', {
+            datasetId: trainset.datasetId,
+            trainsetId,
+            totalCount: appTrainData.length,
+            newCount: newData.length,
+            skippedCount: appTrainData.length - newData.length
+          });
+        } else {
+          addLog.info('All train data already exists, skipping insertion', {
+            datasetId: trainset.datasetId,
+            trainsetId
+          });
+        }
+      }
 
       addLog.info('Copied dataset train data to app trainset', {
-        datasetId,
+        datasetId: trainset.datasetId,
         trainsetId,
         dataCount: appTrainData.length
       });
     }
 
-    // 6. 更新应用训练集统计
+    // 8. 更新应用训练集统计
     await updateTrainsetStats(trainsetId);
   } catch (error) {
     // 更新失败状态

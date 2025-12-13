@@ -20,6 +20,12 @@ import { PerResourceTypeEnum } from '@fastgpt/global/support/permission/constant
 import { removeImageByPath } from '../../common/file/image/controller';
 import { mongoSessionRun } from '../../common/mongo/sessionRun';
 import { MongoAppLogKeys } from './logs/logkeysSchema';
+import { MongoRerankTrainTask } from '../train/rerank/task/schema';
+import { MongoRerankTrainsetData } from '../train/rerank/data/schema';
+import { MongoRerankTrainset } from '../train/rerank/trainset/schema';
+import { rerankTrainTaskQueue } from '../train/rerank/task/mq';
+import { RerankTrainTaskStatusEnum } from '@fastgpt/global/core/train/rerank/constants';
+import { addLog } from '../../common/system/log';
 
 export const beforeUpdateAppFormat = ({ nodes }: { nodes?: StoreNodeItemType[] }) => {
   if (!nodes) return;
@@ -128,6 +134,59 @@ export const getAppBasicInfoByIds = async ({ teamId, ids }: { teamId: string; id
   }));
 };
 
+/**
+ * 删除应用时的训练模块清理
+ * 在现有的应用删除函数中调用此函数
+ */
+export async function cleanupTrainModuleOnAppDelete(
+  appIds: string[],
+  session?: ClientSession
+): Promise<void> {
+  if (!appIds.length) return;
+
+  addLog.info('Cleanup train module on app delete', { appIds });
+
+  // 1. 取消进行中的训练任务
+  const runningTasks = await MongoRerankTrainTask.find(
+    {
+      appId: { $in: appIds },
+      status: {
+        $in: [RerankTrainTaskStatusEnum.pending, RerankTrainTaskStatusEnum.running]
+      }
+    },
+    null,
+    { session }
+  ).lean();
+
+  for (const task of runningTasks) {
+    if (task.jobId) {
+      try {
+        const job = await rerankTrainTaskQueue.getJob(task.jobId);
+        if (job) {
+          await job.remove();
+          addLog.info('Removed train task job', {
+            taskId: String(task._id),
+            jobId: task.jobId
+          });
+        }
+      } catch (error) {
+        addLog.error('Failed to remove train task job', error);
+      }
+    }
+  }
+
+  // 2. 删除所有训练任务
+  await MongoRerankTrainTask.deleteMany({ appId: { $in: appIds } }, { session });
+
+  // 3. 删除应用训练数据
+  await MongoRerankTrainsetData.deleteMany({ appId: { $in: appIds } }, { session });
+
+  // 4. 删除应用训练集
+  await MongoRerankTrainset.deleteMany({ appId: { $in: appIds } }, { session });
+
+  addLog.info('Cleanup train module completed', { appIds });
+}
+
 export const onDelOneApp = async ({
   teamId,
   appId,
@@ -192,6 +251,17 @@ export const onDelOneApp = async ({
       await MongoAppLogKeys.deleteMany({
         appId
       }).session(session);
+    }
+
+    // 删除训练模块数据（在所有app循环完成后统一删除）
+    await cleanupTrainModuleOnAppDelete(
+      apps.map((app) => String(app._id)),
+      session
+    );
+
+    // delete apps
+    for await (const app of apps) {
+      const appId = app._id;
 
       // delete app
       await MongoApp.deleteOne(

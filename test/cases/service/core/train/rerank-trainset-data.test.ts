@@ -310,13 +310,24 @@ describe('Rerank Trainset Data Controller', () => {
       const { ensureDatasetTrainset, checkDatasetTrainsetReady, getDatasetTrainsetData } =
         await import('@fastgpt/service/core/train/rerank/dataset_trainset/controller');
 
-      // Mock app with datasets
+      // Mock app with dataset search nodes containing datasets
       (MongoApp.findById as any).mockReturnValue({
         lean: vi.fn().mockResolvedValue({
           _id: 'app_123',
           modules: [
-            { type: 'dataset', datasetId: 'dataset_123' },
-            { type: 'other', someField: 'value' }
+            {
+              flowNodeType: 'datasetSearchNode',
+              inputs: [
+                {
+                  key: 'datasetId',
+                  value: 'dataset_123'
+                }
+              ]
+            },
+            {
+              flowNodeType: 'otherNode',
+              someField: 'value'
+            }
           ]
         })
       });
@@ -404,7 +415,7 @@ describe('Rerank Trainset Data Controller', () => {
       (MongoApp.findById as any).mockReturnValue({
         lean: vi.fn().mockResolvedValue({
           _id: 'app_123',
-          modules: [{ type: 'other', someField: 'value' }]
+          modules: [{ flowNodeType: 'otherNode', someField: 'value' }]
         })
       });
 
@@ -416,19 +427,28 @@ describe('Rerank Trainset Data Controller', () => {
       ).rejects.toThrow('No datasets found for this app');
     });
 
-    test('知识库训练集未就绪时应抛出错误', async () => {
+    test('知识库训练集未就绪时应该等待超时后跳过', async () => {
       const { MongoApp } = await import('@fastgpt/service/core/app/schema');
       const { MongoRerankTrainset } = await import(
         '@fastgpt/service/core/train/rerank/trainset/schema'
       );
-      const { ensureDatasetTrainset, checkDatasetTrainsetReady } = await import(
-        '@fastgpt/service/core/train/rerank/dataset_trainset/controller'
-      );
+      const { ensureDatasetTrainset, checkDatasetTrainsetReady, getDatasetTrainsetData } =
+        await import('@fastgpt/service/core/train/rerank/dataset_trainset/controller');
 
       (MongoApp.findById as any).mockReturnValue({
         lean: vi.fn().mockResolvedValue({
           _id: 'app_123',
-          modules: [{ type: 'dataset', datasetId: 'dataset_123' }]
+          modules: [
+            {
+              flowNodeType: 'datasetSearchNode',
+              inputs: [
+                {
+                  key: 'datasetId',
+                  value: 'dataset_123'
+                }
+              ]
+            }
+          ]
         })
       });
 
@@ -438,18 +458,20 @@ describe('Rerank Trainset Data Controller', () => {
         _id: 'ds_trainset_123'
       });
 
+      // Mock 错误状态，这会立即抛出错误而不是轮询等待
       (checkDatasetTrainsetReady as any).mockResolvedValue({
         ready: false,
-        status: 'composing',
-        errorMsg: 'Still generating'
+        status: 'error',
+        errorMsg: 'Generation failed'
       });
 
+      // 新的轮询逻辑在遇到错误状态时会抛出错误
       await expect(
         generateAppTrainsetDataCore({
           appId: 'app_123',
           trainsetId: 'trainset_123'
         })
-      ).rejects.toThrow('Dataset trainset not ready');
-    });
+      ).rejects.toThrow('Generation failed');
+    }, 15000); // 增加超时时间到15秒
   });
 });

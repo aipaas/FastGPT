@@ -11,10 +11,25 @@ export const rerankTrainDataGenerateProcessor: Processor<RerankTrainDataGenerate
 ) => {
   const { appId, trainsetId, datasetIds, forceRegenerate } = job.data;
 
+  // 添加参数验证和防御性检查
+  if (!appId || !trainsetId) {
+    const error = new Error('Missing required parameters: appId or trainsetId');
+    addLog.error('Rerank train data generation failed - missing parameters', {
+      appId,
+      trainsetId,
+      datasetIds
+    });
+    throw error;
+  }
+
+  const datasetCount = Array.isArray(datasetIds) ? datasetIds.length : 0;
+
   addLog.info('Start rerank train data generation', {
     appId,
     trainsetId,
-    datasetCount: datasetIds.length
+    datasetCount,
+    hasDatasetIds: !!datasetIds,
+    forceRegenerate
   });
 
   try {
@@ -29,7 +44,14 @@ export const rerankTrainDataGenerateProcessor: Processor<RerankTrainDataGenerate
       trainsetId
     });
   } catch (error) {
-    addLog.error('Rerank train data generation failed', error);
+    addLog.error('Rerank train data generation failed', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      appId,
+      trainsetId,
+      datasetIds,
+      forceRegenerate
+    });
     throw error;
   }
 };

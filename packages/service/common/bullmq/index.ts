@@ -22,6 +22,7 @@ export enum QueueNames {
   datasetSync = 'datasetSync',
   datasetTrainsetGenerate = 'datasetTrainsetGenerate',
   rerankTrainDataGenerate = 'rerankTrainDataGenerate',
+  rerankTrainTask = 'rerankTrainTask',
   evalDatasetDataQuality = 'evalDatasetDataQuality',
   evalDatasetDataSynthesize = 'evalDatasetDataSynthesize',
   evalTask = 'evalTask',
