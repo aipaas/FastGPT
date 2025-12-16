@@ -115,6 +115,33 @@ async function handler(
     });
   }
 
+  // Add rewriteStandardizedQuery to Human messages
+  filteredHistories.forEach((item, index) => {
+    if (item.obj === ChatRoleEnum.Human) {
+      // Find the next AI message
+      const nextAIMessage = filteredHistories
+        .slice(index + 1)
+        .find((nextItem) => nextItem.obj === ChatRoleEnum.AI);
+
+      if (nextAIMessage?.responseData) {
+        // Search for queryExtensionResult in responseData
+        const findStandardizedQuery = (responses: any[]): string | undefined => {
+          for (const response of responses) {
+            if (response.queryExtensionResult?.synonymRewriteResult?.standardizedQuery) {
+              return response.queryExtensionResult.synonymRewriteResult.standardizedQuery;
+            }
+          }
+          return undefined;
+        };
+
+        const standardizedQuery = findStandardizedQuery(nextAIMessage.responseData);
+        if (standardizedQuery) {
+          (item as any).rewriteStandardizedQuery = standardizedQuery;
+        }
+      }
+    }
+  });
+
   return {
     list: isPlugin
       ? filteredHistories
