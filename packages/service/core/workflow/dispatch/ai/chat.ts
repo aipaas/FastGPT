@@ -161,6 +161,8 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       maxToken
     });
 
+    console.log('datasetQuotePrompt:', quotePrompt);
+
     const [{ filterMessages }] = await Promise.all([
       getChatMessages({
         model: modelConstantsData,
@@ -188,6 +190,8 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       })()
     ]);
 
+    console.log('filterMessages:', filterMessages);
+
     const requestMessages = await loadRequestMessages({
       messages: filterMessages,
       useVision: aiChatVision,
@@ -210,7 +214,7 @@ export const dispatchChatCompletion = async (props: ChatProps): Promise<ChatResp
       },
       modelConstantsData
     );
-    // console.log(JSON.stringify(requestBody, null, 2), '===');
+    console.log(JSON.stringify(requestBody, null, 2), '===');
     const { response, isStreamResponse, getEmptyResponseTip } = await createChatCompletion({
       body: requestBody,
       userKey: externalProvider.openaiAccount,
@@ -506,6 +510,10 @@ async function getChatMessages({
 
   const defaultQuotePrompt = getQuotePrompt(version, quoteRole);
 
+  console.log('defaultQuotePrompt', defaultQuotePrompt);
+  console.log('quoteRole', quoteRole);
+  console.log('useDatasetQuote', useDatasetQuote);
+
   const datasetQuotePromptTemplate = datasetQuotePrompt || defaultQuotePrompt;
 
   // Reset user input, add dataset quote to user input
@@ -535,6 +543,8 @@ async function getChatMessages({
   ]
     .filter(Boolean)
     .join('\n\n===---===---===\n\n');
+
+  console.log('concatenateSystemPrompt', concatenateSystemPrompt);
 
   const messages: ChatItemType[] = [
     ...getSystemPrompt_ChatItemType(concatenateSystemPrompt),
