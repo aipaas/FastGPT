@@ -9,8 +9,7 @@ const {
   mockAxiosPost,
   mockDoc2xParsePDF,
   mockTextinParsePDF,
-  mockUploadImage2S3Bucket,
-  mockJwtSignS3ObjectKey
+  mockUploadImage2S3Bucket
 } = vi.hoisted(() => ({
   mockReadRawContentFromBuffer: vi.fn(async ({ extension, buffer, encoding }: any) => {
     if (extension === 'txt') {
@@ -37,10 +36,7 @@ const {
     text: 'textin-parsed-text',
     imageList: []
   }),
-  mockUploadImage2S3Bucket: vi.fn().mockResolvedValue('https://s3.example.com/uploaded-image.png'),
-  mockJwtSignS3ObjectKey: vi
-    .fn()
-    .mockReturnValue('https://s3.example.com/api/system/file/signed-token')
+  mockUploadImage2S3Bucket: vi.fn().mockResolvedValue('https://s3.example.com/uploaded-image.png')
 }));
 
 vi.mock('@fastgpt/service/worker/function', () => ({
@@ -83,8 +79,7 @@ vi.mock('@fastgpt/service/common/s3/utils', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@fastgpt/service/common/s3/utils')>();
   return {
     ...mod,
-    uploadImage2S3Bucket: mockUploadImage2S3Bucket,
-    jwtSignS3ObjectKey: mockJwtSignS3ObjectKey
+    uploadImage2S3Bucket: mockUploadImage2S3Bucket
   };
 });
 
@@ -356,8 +351,11 @@ describe('readS3FileContentByBuffer', () => {
       }
     });
 
-    expect(result.rawText).toContain('https://s3.example.com/api/system/file/signed-token');
+    // Should replace uuid placeholder with S3 object key (not signed URL)
     expect(result.rawText).not.toContain('IMAGE_abc123_IMAGE');
+    expect(result.rawText).not.toContain('https://s3.example.com/api/system/file/signed-token');
+    expect(result.rawText).toContain('![img](test/prefix/');
+    expect(result.rawText).toMatch(/!\[img\]\(test\/prefix\/\w{12}\.\w+\)/);
   });
 
   it('should skip image upload when imageKeyOptions is not provided', async () => {
