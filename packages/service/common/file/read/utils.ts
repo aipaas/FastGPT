@@ -8,10 +8,9 @@ import { createPdfParseUsage } from '../../../support/wallet/usage/controller';
 import { useDoc2xServer } from '../../../thirdProvider/doc2x';
 import { readRawContentFromBuffer } from '../../../worker/function';
 import { addLog } from '../../system/log';
-import { uploadImage2S3Bucket, jwtSignS3ObjectKey } from '../../s3/utils';
+import { uploadImage2S3Bucket } from '../../s3/utils';
 import { uploadMongoImg } from '../image/controller';
 import { getNanoid } from '@fastgpt/global/common/string/tools';
-import { addDays } from 'date-fns';
 import { UserError } from '@fastgpt/global/common/error/utils';
 import { CommonErrEnum } from '@fastgpt/global/common/error/code/common';
 import { normalizeMimeType, resolveMimeExtension, resolveMimeType } from '../../s3/utils/mime';
@@ -235,7 +234,16 @@ export const readRawContentByFileBuffer = async ({
       if (cfg?.url) {
         if (!cfg?.key)
           return () => Promise.reject(new UserError(CommonErrEnum.customParseMissingKey));
-        return () => parseByCustomService({ teamId, tmbId, buffer, extension, filename, usageId, parseConfig });
+        return () =>
+          parseByCustomService({
+            teamId,
+            tmbId,
+            buffer,
+            extension,
+            filename,
+            usageId,
+            parseConfig
+          });
       }
       return () =>
         Promise.reject(
@@ -258,10 +266,12 @@ export const readRawContentByFileBuffer = async ({
     if (isDocumentType && cfg?.url) {
       if (!cfg?.key)
         return () => Promise.reject(new UserError(CommonErrEnum.customParseMissingKey));
-      return () => parseByCustomService({ teamId, tmbId, buffer, extension, filename, usageId, parseConfig });
+      return () =>
+        parseByCustomService({ teamId, tmbId, buffer, extension, filename, usageId, parseConfig });
     }
     if (extension === 'pdf' && cfg?.doc2xKey)
-      return () => parseByDoc2x({ teamId, tmbId, buffer, extension, filename, usageId, parseConfig });
+      return () =>
+        parseByDoc2x({ teamId, tmbId, buffer, extension, filename, usageId, parseConfig });
     return systemParse;
   };
 
@@ -337,7 +347,16 @@ export const readS3FileContentByBuffer = async ({
       if (cfg?.url) {
         if (!cfg?.key)
           return () => Promise.reject(new UserError(CommonErrEnum.customParseMissingKey));
-        return () => parseByCustomService({ teamId, tmbId, buffer, extension, filename, usageId, parseConfig });
+        return () =>
+          parseByCustomService({
+            teamId,
+            tmbId,
+            buffer,
+            extension,
+            filename,
+            usageId,
+            parseConfig
+          });
       }
       return () =>
         Promise.reject(
@@ -360,10 +379,12 @@ export const readS3FileContentByBuffer = async ({
     if (isDocumentType && cfg?.url) {
       if (!cfg?.key)
         return () => Promise.reject(new UserError(CommonErrEnum.customParseMissingKey));
-      return () => parseByCustomService({ teamId, tmbId, buffer, extension, filename, usageId, parseConfig });
+      return () =>
+        parseByCustomService({ teamId, tmbId, buffer, extension, filename, usageId, parseConfig });
     }
     if (extension === 'pdf' && cfg?.doc2xKey)
-      return () => parseByDoc2x({ teamId, tmbId, buffer, extension, filename, usageId, parseConfig });
+      return () =>
+        parseByDoc2x({ teamId, tmbId, buffer, extension, filename, usageId, parseConfig });
     return systemParse;
   };
 
@@ -374,15 +395,16 @@ export const readS3FileContentByBuffer = async ({
 
   addLog.debug(`Parse file success, time: ${Date.now() - start}ms`);
 
-  // upload inline images to S3 and replace uuid placeholders with real urls
+  // upload inline images to S3 and replace uuid placeholders with S3 object keys.
+  // Signed preview URLs are generated lazily at read time by replaceS3KeyToPreviewUrl.
   if (imageList && imageKeyOptions) {
     await batchRun(imageList, async (item) => {
-      let src: string | null = null;
+      let imageKey: string | null = null;
       try {
         const mimetype = normalizeMimeType(item.mime);
         const ext = resolveMimeExtension(mimetype);
         const filename = `${getNanoid(12)}${ext}`;
-        const imageKey = `${imageKeyOptions.prefix}/${filename}`;
+        imageKey = `${imageKeyOptions.prefix}/${filename}`;
         await uploadImage2S3Bucket('private', {
           base64Img: `data:${mimetype};base64,${item.base64}`,
           uploadKey: imageKey,
@@ -390,15 +412,14 @@ export const readS3FileContentByBuffer = async ({
           filename,
           expiredTime: imageKeyOptions.expiredTime
         });
-        const signExpiry = imageKeyOptions.expiredTime ?? addDays(new Date(), 90);
-        src = jwtSignS3ObjectKey(imageKey, signExpiry);
       } catch (error) {
         addLog.warn('Upload file image to S3 error', { error });
+        imageKey = null;
       }
 
-      if (src) {
-        rawText = rawText.replaceAll(item.uuid, src);
-        if (formatText) formatText = formatText.replaceAll(item.uuid, src);
+      if (imageKey) {
+        rawText = rawText.replaceAll(item.uuid, imageKey);
+        if (formatText) formatText = formatText.replaceAll(item.uuid, imageKey);
       } else {
         const imgPattern = new RegExp(`!\\[[^\\]]*\\]\\(${item.uuid}\\)`, 'g');
         rawText = rawText.replace(imgPattern, '');
