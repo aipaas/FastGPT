@@ -54,27 +54,28 @@ export const authDatasetByTmbId = async ({
       return Promise.reject(DatasetErrEnum.unExist);
     }
 
-    if (isRoot) {
-      // 如果 API 知识库开启了权限同步，不走 root 绕过，继续走正常鉴权
-      const isApiDatasetWithPermissionSync =
-        dataset.type === DatasetTypeEnum.apiDataset &&
-        !!(dataset.apiDatasetServer as any)?.apiServer?.permissionSync;
+    // apiDataset 开启权限同步时，权限由外部 API 决定：root 与团队所有者均不再绕过鉴权
+    const isApiDatasetWithPermissionSync =
+      dataset.type === DatasetTypeEnum.apiDataset &&
+      !!(dataset.apiDatasetServer as any)?.apiServer?.permissionSync;
 
-      if (!isApiDatasetWithPermissionSync) {
-        return {
-          ...dataset,
-          permission: new DatasetPermission({
-            isOwner: true
-          })
-        };
-      }
+    if (isRoot && !isApiDatasetWithPermissionSync) {
+      return {
+        ...dataset,
+        permission: new DatasetPermission({
+          isOwner: true
+        })
+      };
     }
 
     if (String(dataset.teamId) !== teamId) {
       return Promise.reject(DatasetErrEnum.unAuthDataset);
     }
 
-    const isOwner = tmbPer.isOwner || String(dataset.tmbId) === String(tmbId);
+    // permissionSync 场景下团队所有者不享受 owner 绕过，仅保留创建者 owner
+    const isOwner =
+      (isApiDatasetWithPermissionSync ? false : tmbPer.isOwner) ||
+      String(dataset.tmbId) === String(tmbId);
     const isGetParentClb =
       dataset.inheritPermission && dataset.type !== DatasetTypeEnum.folder && !!dataset.parentId;
 
@@ -170,28 +171,27 @@ export async function authDatasetCollection({
 
   const effectiveIsRoot = isRoot || isRootFromHeader;
 
-  if (effectiveIsRoot) {
-    // 如果 API 知识库开启了权限同步，不走 root 绕过，继续走正常鉴权
-    const isApiDatasetWithPermissionSync =
-      collection.dataset.type === DatasetTypeEnum.apiDataset &&
-      !!(collection.dataset.apiDatasetServer as any)?.apiServer?.permissionSync;
+  // apiDataset 开启权限同步时，权限由外部 API 决定：root 与团队所有者均不再绕过鉴权
+  const isApiDatasetWithPermissionSync =
+    collection.dataset.type === DatasetTypeEnum.apiDataset &&
+    !!(collection.dataset.apiDatasetServer as any)?.apiServer?.permissionSync;
 
-    if (!isApiDatasetWithPermissionSync) {
-      return {
-        userId,
-        teamId,
-        tmbId,
-        collection,
-        permission: new DatasetPermission({ isOwner: true }),
-        isRoot: effectiveIsRoot
-      };
-    }
+  if (effectiveIsRoot && !isApiDatasetWithPermissionSync) {
+    return {
+      userId,
+      teamId,
+      tmbId,
+      collection,
+      permission: new DatasetPermission({ isOwner: true }),
+      isRoot: effectiveIsRoot
+    };
   }
 
   const permission = await getCollectionTmbPermission({
     collection,
     teamId,
-    tmbId
+    tmbId,
+    isPermissionSyncDataset: isApiDatasetWithPermissionSync
   });
 
   if (!permission.checkPer(per)) {
@@ -216,7 +216,8 @@ export async function getCollectionTmbPermission({
   collection,
   teamId,
   tmbId,
-  depth = 0
+  depth = 0,
+  isPermissionSyncDataset = false
 }: {
   collection: Pick<
     DatasetCollectionSchemaType,
@@ -225,6 +226,7 @@ export async function getCollectionTmbPermission({
   teamId: string;
   tmbId: string;
   depth?: number;
+  isPermissionSyncDataset?: boolean;
 }): Promise<DatasetPermission> {
   // Prevent infinite recursion
   if (depth > MAX_COLLECTION_PERMISSION_DEPTH) {
@@ -234,7 +236,10 @@ export async function getCollectionTmbPermission({
   const { permission: tmbPer } = await getTmbInfoByTmbId({ tmbId });
 
   // Check if owner of this collection (team owner or collection creator)
-  const isOwner = tmbPer.isOwner || String(collection.tmbId) === String(tmbId);
+  // permissionSync 场景下团队所有者不享受 owner 绕过，仅保留创建者 owner
+  const isOwner =
+    (isPermissionSyncDataset ? false : tmbPer.isOwner) ||
+    String(collection.tmbId) === String(tmbId);
   if (isOwner) {
     return new DatasetPermission({ isOwner: true });
   }
@@ -277,7 +282,8 @@ export async function getCollectionTmbPermission({
         collection: parentCollection,
         teamId,
         tmbId,
-        depth: depth + 1
+        depth: depth + 1,
+        isPermissionSyncDataset
       });
       parentRoleVal = parentPermission.role;
     }

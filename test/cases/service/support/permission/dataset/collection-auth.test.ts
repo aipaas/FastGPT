@@ -542,3 +542,99 @@ describe('getCollectionTmbPermission - 正交核心测试', () => {
     expect(vi.mocked(MongoDatasetCollection.findOne)).not.toHaveBeenCalled();
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════
+// permissionSync 场景（apiDataset 开启权限同步）
+// 团队所有者不再享受 owner 绕过，权限由外部 API 同步的协作者决定；
+// 创建者 owner 仍保留（与 auth.ts 实现一致）。
+// ══════════════════════════════════════════════════════════════════════════
+describe('getCollectionTmbPermission - permissionSync 场景', () => {
+  const teamId = newId();
+  const tmbId = newId();
+  const otherTmbId = newId();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  /** 团队所有者的 tmbInfo mock */
+  const teamOwnerInfo = (teamId: string) => ({
+    teamId,
+    permission: { isOwner: true }
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // TC-16: 团队所有者 + permissionSync + folder + 无协作者授权 → 无任何权限
+  // 验证：开启权限同步后团队所有者不再因 tmbPer.isOwner 绕过
+  // ──────────────────────────────────────────────────────────────────────────
+  it('TC-16 permissionSync下团队所有者不再绕过，无协作者授权则无权限', async () => {
+    vi.mocked(getTmbInfoByTmbId).mockResolvedValue(teamOwnerInfo(teamId) as any);
+    const collection = makeCollection({
+      tmbId: otherTmbId,
+      type: DatasetCollectionTypeEnum.folder
+    });
+    vi.mocked(getTmbPermission).mockResolvedValue(undefined); // 外部 API 未授权
+
+    const perm = await getCollectionTmbPermission({
+      collection,
+      teamId,
+      tmbId,
+      isPermissionSyncDataset: true
+    });
+
+    expect(perm.isOwner).toBe(false);
+    expect(perm.hasReadPer).toBe(false);
+    expect(perm.hasWritePer).toBe(false);
+    expect(perm.hasManagePer).toBe(false);
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // TC-17: 团队所有者 + permissionSync + folder + 协作者 ReadRole → 仅可读
+  // 验证：开启权限同步后团队所有者按外部同步的协作者权限鉴权
+  // ──────────────────────────────────────────────────────────────────────────
+  it('TC-17 permissionSync下团队所有者按协作者ReadRole鉴权，可读不可写', async () => {
+    vi.mocked(getTmbInfoByTmbId).mockResolvedValue(teamOwnerInfo(teamId) as any);
+    const collection = makeCollection({
+      tmbId: otherTmbId,
+      type: DatasetCollectionTypeEnum.folder
+    });
+    vi.mocked(getTmbPermission).mockResolvedValue(ReadRoleVal);
+
+    const perm = await getCollectionTmbPermission({
+      collection,
+      teamId,
+      tmbId,
+      isPermissionSyncDataset: true
+    });
+
+    expect(perm.isOwner).toBe(false);
+    expect(perm.hasReadPer).toBe(true);
+    expect(perm.hasWritePer).toBe(false);
+    expect(perm.hasManagePer).toBe(false);
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // TC-18: 创建者 + permissionSync → 仍 isOwner（创建者 owner 不受权限同步影响）
+  // ──────────────────────────────────────────────────────────────────────────
+  it('TC-18 permissionSync下创建者仍为Owner，保留创建者绕过', async () => {
+    vi.mocked(getTmbInfoByTmbId).mockResolvedValue(normalMemberInfo(teamId) as any);
+    const collection = makeCollection({
+      tmbId, // 与请求用户相同 → 创建者
+      type: DatasetCollectionTypeEnum.file
+    });
+
+    const perm = await getCollectionTmbPermission({
+      collection,
+      teamId,
+      tmbId,
+      isPermissionSyncDataset: true
+    });
+
+    expect(perm.isOwner).toBe(true);
+    expect(perm.hasReadPer).toBe(true);
+    expect(perm.hasWritePer).toBe(true);
+    expect(perm.hasManagePer).toBe(true);
+    // owner 短路：不应查询任何 resource_permissions
+    expect(vi.mocked(getTmbPermission)).not.toHaveBeenCalled();
+  });
+});

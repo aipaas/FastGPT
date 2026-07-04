@@ -12,6 +12,8 @@ import { jwtSignS3DownloadToken, isS3ObjectKey } from '../../common/s3/utils';
 import { getLogger, LogCategories } from '../../common/logger';
 import { S3Buckets } from '../../common/s3/config/constants';
 import { MongoDatasetCollection } from './collection/schema';
+import { MongoDataset } from './schema';
+import { DatasetTypeEnum } from '@fastgpt/global/core/dataset/constants';
 
 const logger = getLogger(LogCategories.MODULE.DATASET.FILE);
 
@@ -62,17 +64,31 @@ export const filterCollectionsByTmbId = async ({
   tmbId: string;
   teamId: string;
 }): Promise<{ allPass: true } | { allPass: false; forbiddenIds: string[] }> => {
-  const collections = await MongoDatasetCollection.find(
-    {
-      datasetId: { $in: datasetIds },
-      forbid: { $ne: true },
-      deleteTime: null
-    },
-    '_id tmbId datasetId parentId inheritPermission type'
-  ).lean();
+  const [collections, datasets] = await Promise.all([
+    MongoDatasetCollection.find(
+      {
+        datasetId: { $in: datasetIds },
+        forbid: { $ne: true },
+        deleteTime: null
+      },
+      '_id tmbId datasetId parentId inheritPermission type'
+    ).lean(),
+    MongoDataset.find({ _id: { $in: datasetIds } }, '_id type apiDatasetServer').lean()
+  ]);
 
   if (collections.length === 0) {
     return { allPass: true };
+  }
+
+  // 构建 datasetId -> 是否开启权限同步 的映射（permissionSync 为 dataset 级配置）
+  const permissionSyncDatasetIds = new Set<string>();
+  for (const ds of datasets) {
+    if (
+      ds.type === DatasetTypeEnum.apiDataset &&
+      !!(ds.apiDatasetServer as any)?.apiServer?.permissionSync
+    ) {
+      permissionSyncDatasetIds.add(String(ds._id));
+    }
   }
 
   const permissions = await Promise.all(
@@ -81,7 +97,8 @@ export const filterCollectionsByTmbId = async ({
         const per = await getCollectionTmbPermission({
           collection: col as any,
           teamId,
-          tmbId
+          tmbId,
+          isPermissionSyncDataset: permissionSyncDatasetIds.has(String(col.datasetId))
         });
         return per.hasReadPer;
       } catch (error) {
