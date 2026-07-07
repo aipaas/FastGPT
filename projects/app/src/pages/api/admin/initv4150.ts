@@ -23,6 +23,7 @@ export type Initv4150Response = {
     total: number;
     flattened: number;
     isSharedSet: number;
+    providerSet: number;
     defaultsSet: number;
     orphanAssigned: number;
   };
@@ -144,6 +145,7 @@ export async function migrateModelData(options?: {
   total: number;
   flattened: number;
   isSharedSet: number;
+  providerSet: number;
   defaultsSet: number;
   orphanAssigned: number;
 }> {
@@ -158,7 +160,14 @@ export async function migrateModelData(options?: {
   const db = connectionMongo.connection.db;
   if (!db) {
     logger.warn('MongoDB connection not available, skipping data migration');
-    return { total: 0, flattened: 0, isSharedSet: 0, defaultsSet: 0, orphanAssigned: 0 };
+    return {
+      total: 0,
+      flattened: 0,
+      isSharedSet: 0,
+      providerSet: 0,
+      defaultsSet: 0,
+      orphanAssigned: 0
+    };
   }
   const models = (await db.collection('system_models').find({}).toArray()) as any[];
   logger.info(`Found ${models.length} models`);
@@ -168,6 +177,7 @@ export async function migrateModelData(options?: {
 
   let flattened = 0;
   let isSharedSet = 0;
+  let providerSet = 0;
   let defaultsSet = 0;
   let orphanAssigned = 0;
 
@@ -186,8 +196,13 @@ export async function migrateModelData(options?: {
     }
 
     if (model.isShared === undefined) {
-      $set.isShared = false;
+      $set.isShared = true;
       isSharedSet++;
+    }
+
+    if (model.provider === undefined) {
+      $set.provider = 'SangforAICP';
+      providerSet++;
     }
 
     // Before v4.15.0, only user-created custom models were persisted to DB.
@@ -357,9 +372,9 @@ export async function migrateModelData(options?: {
   }
 
   logger.info(
-    `Data migration complete: flattened ${flattened}, isShared set on ${isSharedSet}, defaults set on ${defaultsSet}, orphans assigned ${orphanAssigned}`
+    `Data migration complete: flattened ${flattened}, isShared set on ${isSharedSet}, provider set on ${providerSet}, defaults set on ${defaultsSet}, orphans assigned ${orphanAssigned}`
   );
-  return { total: models.length, flattened, isSharedSet, defaultsSet, orphanAssigned };
+  return { total: models.length, flattened, isSharedSet, providerSet, defaultsSet, orphanAssigned };
 }
 
 /**
@@ -990,6 +1005,7 @@ async function handler(
     total: 0,
     flattened: 0,
     isSharedSet: 0,
+    providerSet: 0,
     defaultsSet: 0,
     orphanAssigned: 0
   };
