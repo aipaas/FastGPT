@@ -273,16 +273,7 @@ try {
   DatasetCollectionSchema.index({ deleteTime: 1 });
 
   // Backfill: find non-folder collections without stats
-  // Partial index: once statsUpdatedAt is set, the document drops out of the index
-  DatasetCollectionSchema.index(
-    { deleteTime: 1, type: 1, statsUpdatedAt: 1 },
-    {
-      partialFilterExpression: {
-        deleteTime: { $eq: null },
-        statsUpdatedAt: { $exists: false }
-      }
-    }
-  );
+  DatasetCollectionSchema.index({ deleteTime: 1, type: 1, statsUpdatedAt: 1 });
 } catch (error) {
   const logger = getLogger(LogCategories.INFRA.MONGO);
   logger.error('Failed to build dataset collection indexes', { error });
@@ -292,3 +283,4 @@ export const MongoDatasetCollection = getMongoModel<DatasetCollectionSchemaType>
   DatasetColCollectionName,
   DatasetCollectionSchema
 );
+
