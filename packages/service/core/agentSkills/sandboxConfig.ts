@@ -11,6 +11,7 @@ import type {
 import { createSandbox, type ISandbox, type OpenSandboxVolume } from '@fastgpt-sdk/sandbox-adapter';
 import type { OpenSandboxConfigType, SandboxProviderType } from '@fastgpt-sdk/sandbox-adapter';
 import type { OpenSandboxAdapter } from '@fastgpt-sdk/sandbox-adapter';
+import v8 from 'node:v8';
 import { env } from '../../env';
 
 type SandboxRuntime = 'kubernetes' | 'docker';
@@ -130,7 +131,7 @@ export function getSkillSizeLimits(): SkillSizeLimits {
   };
 }
 
-/** Heap headroom ratio — refuse zip operations when heapUsed/heapTotal exceeds this. */
+/** Heap headroom ratio — refuse zip operations when heapUsed/heapLimit exceeds this. */
 const HEAP_HEADROOM_RATIO = 0.9;
 
 /**
@@ -163,12 +164,13 @@ export function checkHeapHeadroom(additionalBytes: number): void {
     return;
   }
 
-  const { heapUsed, heapTotal } = process.memoryUsage();
+  const { heapUsed } = process.memoryUsage();
+  const { heap_size_limit: heapLimit } = v8.getHeapStatistics();
   const projected = heapUsed + additionalBytes;
-  if (projected > heapTotal * HEAP_HEADROOM_RATIO) {
+  if (projected > heapLimit * HEAP_HEADROOM_RATIO) {
     throw new Error(
       `Insufficient heap memory: ${(heapUsed / 1024 / 1024).toFixed(0)}MB used of ` +
-        `${(heapTotal / 1024 / 1024).toFixed(0)}MB total, ` +
+        `${(heapLimit / 1024 / 1024).toFixed(0)}MB limit, ` +
         `need ${(additionalBytes / 1024 / 1024).toFixed(0)}MB more`
     );
   }
