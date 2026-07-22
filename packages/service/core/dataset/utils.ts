@@ -143,7 +143,8 @@ export function replaceS3KeyToPreviewUrl(documentQuoteText: string, expiredTime:
     return documentQuoteText as string;
 
   const prefixes = Object.values(S3Sources);
-  const pattern = prefixes.map((p) => `${p}\\/[^)]+`).join('|');
+  const prefixAlternation = prefixes.map((p) => `${p}\\/`).join('|');
+  const pattern = `(?:${prefixAlternation})[^)]+`;
   const regex = new RegExp(String.raw`(!?)\[([^\]]*)\]\(\s*(?!https?:\/\/)(${pattern})\s*\)`, 'g');
 
   const matches = Array.from(documentQuoteText.matchAll(regex));
@@ -159,6 +160,29 @@ export function replaceS3KeyToPreviewUrl(documentQuoteText: string, expiredTime:
         expiredTime
       });
       const replacement = `${bang}[${alt}](${url})`;
+      content =
+        content.slice(0, match.index) + replacement + content.slice(match.index + full.length);
+    }
+  }
+
+  // Handle HTML <img> tags with S3 keys (e.g. table images from pdf2text MinerU parsing)
+  const htmlSrcPattern = `(?:${prefixAlternation})[^"']+`;
+  const htmlImgRegex = new RegExp(
+    String.raw`<img\s+[^>]*?\bsrc\s*=\s*(["'])(?!https?:\/\/)(${htmlSrcPattern})\1[^>]*>`,
+    'g'
+  );
+
+  const htmlMatches = Array.from(content.matchAll(htmlImgRegex));
+  for (const match of htmlMatches.slice().reverse()) {
+    const [full, , objectKey] = match;
+
+    if (isS3ObjectKey(objectKey, 'dataset') || isS3ObjectKey(objectKey, 'chat')) {
+      const url = jwtSignS3DownloadToken({
+        objectKey,
+        bucketName: S3Buckets.private,
+        expiredTime
+      });
+      const replacement = full.replace(objectKey, url);
       content =
         content.slice(0, match.index) + replacement + content.slice(match.index + full.length);
     }
