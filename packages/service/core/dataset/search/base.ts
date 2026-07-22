@@ -15,7 +15,7 @@ import type { SearchDataResponseItemType } from '@fastgpt/global/core/dataset/ty
 
 // 数据库查询字段定义
 export const datasetDataSelectField =
-  '_id datasetId collectionId updateTime q a imageId imageDescMap chunkIndex indexes';
+  '_id datasetId collectionId updateTime q a imageId imageDescMap chunkIndex indexes metadata';
 export const datasetCollectionSelectField =
   '_id name fileId rawLink apiFileId externalFileId externalFileUrl';
 
