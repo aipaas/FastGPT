@@ -86,7 +86,7 @@ const InputTypeConfig = ({
 
   const availableModels = useMemoEnhance(() => {
     return llmModelList.map((model) => ({
-      value: model.model,
+      value: model.id,
       label: model.name
     }));
   }, [llmModelList]);
